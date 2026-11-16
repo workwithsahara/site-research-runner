@@ -19,10 +19,15 @@ QATAR = ["Doha", "Al Wakrah", "Al Khor", "Lusail", "Umm Salal", "Al Rayyan", "Me
 SAUDI_T = ["recruitment office {c} Filipino domestic workers", "manpower recruitment agency {c} Philippines workers",
            "{c} recruitment agency hire Filipino skilled workers", "{c} musaned licensed recruitment office Filipino",
            "{c} company job order Filipino workers", "{c} maid agency Filipina housemaid", "{c} recruitment office Philippines accredited",
-           "{c} manpower supply company Filipino workers contact"]
+           "{c} manpower supply company Filipino workers contact",
+           "{c} Filipino nurses hospital staff recruitment agency", "{c} agency hiring Filipino hotel restaurant staff",
+           "{c} Filipino drivers cleaners labour supply company", "{c} housemaid recruitment office Filipino contact email",
+           "{c} recruitment agency looking for Philippine partner agency"]
 QATAR_T = ["recruitment agency {c} Filipino domestic workers", "manpower supply company {c} Filipino workers",
            "{c} recruitment office Philippines skilled workers", "{c} company hiring Filipino workers job order",
-           "{c} maid agency Filipina housemaid", "{c} licensed recruitment agency Philippines contact"]
+           "{c} maid agency Filipina housemaid", "{c} licensed recruitment agency Philippines contact",
+           "{c} Filipino nurses hospital staff recruitment agency", "{c} agency hiring Filipino hotel restaurant staff",
+           "{c} Filipino drivers cleaners labour supply company", "{c} recruitment agency looking for Philippine partner agency"]
 ARABIC = ["مكتب استقدام عمالة فلبينية {c}", "استقدام خادمات فلبينيات {c}", "شركة استقدام من الفلبين {c}", "مكتب استقدام عمالة منزلية الفلبين"]
 AR_SA = {"Riyadh": "الرياض", "Jeddah": "جدة", "Dammam": "الدمام", "Khobar": "الخبر", "Mecca": "مكة", "Medina": "المدينة المنورة", "Taif": "الطائف", "Abha": "أبها", "Tabuk": "تبوك", "Buraidah": "بريدة"}
 AR_QA = {"Doha": "الدوحة", "Al Wakrah": "الوكرة", "Al Khor": "الخور", "Lusail": "لوسيل", "Al Rayyan": "الريان"}
@@ -52,7 +57,8 @@ TARGET = int(os.environ.get("FRA_TARGET", "500"))
 WORKERS = int(os.environ.get("WORKERS", "6"))
 
 
-def build_queries(day):
+def build_queries(day, rnd=0):
+    day = day + rnd * 5
     out = []
     for names in (AR_SA, AR_QA):
         keys = list(names)
@@ -64,7 +70,7 @@ def build_queries(day):
         for n, t in enumerate(temps):
             for k in range(6 if tag == "Saudi" else 4):
                 out.append(t.format(c=cities[(day * 6 + n * 3 + k) % len(cities)]) + " | FRA")
-    return [g + " | FRA" for g in GENERIC] + out
+    return ([g + " | FRA" for g in GENERIC] if rnd == 0 else []) + out
 
 
 def fmt_gulf(m):
@@ -198,42 +204,49 @@ def main():
     in_sheet = {(r.get("Website", "") or "").lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/") for r in have_rows}
     print(f"Loaded {len(checked)} checked and {len(have_rows)} agencies from the sheet", flush=True)
     session = requests.Session()
-    qs = build_queries(day)
     new = done = 0
     seen = set()
-    for i in range(0, len(qs), 4):
-        if new >= TARGET or time.time() - started > MAX_SECONDS:
+    empty = 0
+    for rnd in range(60):
+        qs = build_queries(day, rnd)
+        before = done
+        for i in range(0, len(qs), 4):
+            if new >= TARGET or time.time() - started > MAX_SECONDS:
+                break
+            pairs = s.discover(qs[i:i + 4], session)
+            todo = []
+            for host, _ in pairs:
+                d = host.lower().replace("www.", "")
+                if d and d not in seen and d not in checked and d not in in_sheet:
+                    seen.add(d)
+                    todo.append(d)
+            print(f"searches {i + 1}-{min(i + 4, len(qs))} of {len(qs)}: {len(todo)} new sites", flush=True)
+            if not todo:
+                continue
+            with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+                results = list(ex.map(work, todo))
+            rows, crows = [], []
+            for d, res, why, name in results:
+                done += 1
+                if res is None:
+                    crows.append([d, stamp, why])
+                    continue
+                if any(e in have_c for e in res["emails"]):
+                    crows.append([d, stamp, "duplicate email"])
+                    continue
+                have_c |= set(res["emails"])
+                crows.append([d, stamp, "saved"])
+                rows.append([stamp, name or d, "https://" + d, res["country"], res["city"], ", ".join(res["emails"]),
+                             "Yes", res["hires"], " | ".join(res["signals"]),
+                             res["partner"], res["licence"], res["licnum"], res["pages"]])
+            st.add_rows("FRA Leads", rows)
+            st.add_rows("FRA Checked", crows)
+            new += len(rows)
+            print(f"checked {done} sites, {new} agencies saved so far", flush=True)
+        empty = empty + 1 if done == before else 0
+        print(f"round {rnd + 1} finished, {new} agencies saved so far", flush=True)
+        if new >= TARGET or time.time() - started > MAX_SECONDS or empty >= 2:
             break
-        pairs = s.discover(qs[i:i + 4], session)
-        todo = []
-        for host, _ in pairs:
-            d = host.lower().replace("www.", "")
-            if d and d not in seen and d not in checked and d not in in_sheet:
-                seen.add(d)
-                todo.append(d)
-        print(f"searches {i + 1}-{min(i + 4, len(qs))} of {len(qs)}: {len(todo)} new sites", flush=True)
-        if not todo:
-            continue
-        with ThreadPoolExecutor(max_workers=WORKERS) as ex:
-            results = list(ex.map(work, todo))
-        rows, crows = [], []
-        for d, res, why, name in results:
-            done += 1
-            if res is None:
-                crows.append([d, stamp, why])
-                continue
-            if any(e in have_c for e in res["emails"]):
-                crows.append([d, stamp, "duplicate email"])
-                continue
-            have_c |= set(res["emails"])
-            crows.append([d, stamp, "saved"])
-            rows.append([stamp, name or d, "https://" + d, res["country"], res["city"], ", ".join(res["emails"]),
-                         "Yes", res["hires"], " | ".join(res["signals"]),
-                         res["partner"], res["licence"], res["licnum"], res["pages"]])
-        st.add_rows("FRA Leads", rows)
-        st.add_rows("FRA Checked", crows)
-        new += len(rows)
-        print(f"checked {done} sites, {new} agencies saved so far", flush=True)
     print(f"DONE agencies saved {new}, sites checked {done}", flush=True)
 
 
