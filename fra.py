@@ -84,6 +84,9 @@ def evaluate(domain, pages):
             else:
                 qa += 1
         wa += [("+" + x.lstrip("+")) for x in WA.findall(raw)]
+    has_phone = bool(phones)
+    if not has_phone and not domain.endswith((".sa", ".qa")) and sa < 6 and qa < 6:
+        return None, "not clearly Saudi or Qatar"
     if sa < 2 and qa < 2:
         return None, "not Saudi or Qatar"
     if not FIL.search(text):
@@ -99,7 +102,8 @@ def evaluate(domain, pages):
     dh, sk = bool(DH.search(text)), len(SK.findall(text)) >= 2
     hires = "Both" if dh and sk else "Domestic helpers" if dh else "Skilled" if sk else "Unclear"
     sents = re.split(r"[.\n|•]+", re.sub(r"\s+", " ", text))
-    sig = [x.strip()[:150] for x in sents if JO.search(x) and 15 < len(x.strip())][:3]
+    clean = [re.sub(r"[^\x20-\x7e]", "", x).strip() for x in sents]
+    sig = [x[:120] for x in clean if JO.search(x) and 15 < len(x) < 400 and (re.search(r"\d", x) or SK.search(x) or DH.search(x))][:3]
     lic = LIC.search(text)
     country = "Saudi Arabia" if sa >= qa else "Qatar"
     cities = SAUDI if country == "Saudi Arabia" else QATAR
@@ -197,7 +201,7 @@ def main():
                          res["partner"], res["licence"], res["pages"]])
         for r in rows:
             for j, v in enumerate(r):
-                if isinstance(v, str) and v[:1] in "+=-@":
+                if isinstance(v, str) and v and v[0] in "+=-@":
                     r[j] = "'" + v
         st.add_rows("FRA Leads", rows)
         st.add_rows("FRA Checked", crows)
