@@ -13,13 +13,18 @@ from bs4 import BeautifulSoup
 import scraper as s
 import store
 
-SAUDI = ["Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina", "Taif", "Abha", "Tabuk", "Buraidah", "Jubail", "Yanbu", "Hail"]
-QATAR = ["Doha", "Al Wakrah", "Al Khor", "Lusail", "Umm Salal", "Al Rayyan"]
+SAUDI = ["Riyadh", "Jeddah", "Dammam", "Khobar", "Mecca", "Medina", "Taif", "Abha", "Tabuk", "Buraidah", "Jubail", "Yanbu", "Hail", "Najran", "Jazan", "Al Ahsa", "Khamis Mushait", "Unaizah", "Hafar Al Batin", "Arar"]
+QATAR = ["Doha", "Al Wakrah", "Al Khor", "Lusail", "Umm Salal", "Al Rayyan", "Mesaieed", "Dukhan", "Al Shamal", "Madinat Khalifa"]
 SAUDI_T = ["recruitment office {c} Filipino domestic workers", "manpower recruitment agency {c} Philippines workers",
            "{c} recruitment agency hire Filipino skilled workers", "{c} musaned licensed recruitment office Filipino",
-           "{c} company job order Filipino workers"]
+           "{c} company job order Filipino workers", "{c} maid agency Filipina housemaid", "{c} recruitment office Philippines accredited",
+           "{c} manpower supply company Filipino workers contact"]
 QATAR_T = ["recruitment agency {c} Filipino domestic workers", "manpower supply company {c} Filipino workers",
-           "{c} recruitment office Philippines skilled workers", "{c} company hiring Filipino workers job order"]
+           "{c} recruitment office Philippines skilled workers", "{c} company hiring Filipino workers job order",
+           "{c} maid agency Filipina housemaid", "{c} licensed recruitment agency Philippines contact"]
+ARABIC = ["مكتب استقدام عمالة فلبينية {c}", "استقدام خادمات فلبينيات {c}", "شركة استقدام من الفلبين {c}", "مكتب استقدام عمالة منزلية الفلبين"]
+AR_SA = {"Riyadh": "الرياض", "Jeddah": "جدة", "Dammam": "الدمام", "Khobar": "الخبر", "Mecca": "مكة", "Medina": "المدينة المنورة", "Taif": "الطائف", "Abha": "أبها", "Tabuk": "تبوك", "Buraidah": "بريدة"}
+AR_QA = {"Doha": "الدوحة", "Al Wakrah": "الوكرة", "Al Khor": "الخور", "Lusail": "لوسيل", "Al Rayyan": "الريان"}
 GENERIC = ["Saudi recruitment agency looking for Philippine agency partnership", "Qatar recruitment agency looking for Philippine agency partnership",
            "Saudi manpower agency Filipino domestic workers accredited POLO", "Qatar recruitment office accredited MWO Filipino workers",
            "Saudi recruitment agency Filipino housemaid", "Qatar manpower supply Filipino skilled workers"]
@@ -29,7 +34,7 @@ COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Phone", 
 
 DH = re.compile(r"domestic (?:worker|helper|staff)|house ?maid|\bmaids?\b|household (?:service )?worker|\bhsw\b|nanny|housekeeper", re.I)
 SK = re.compile(r"skilled|technician|engineer|nurse|welder|electrician|mechanic|construction|hospitality|chef|manpower supply|labou?r supply|plumber|carpenter|steel|operator", re.I)
-FIL = re.compile(r"filipino|philippine|pinoy|\bofw\b|manila", re.I)
+FIL = re.compile(r"filipino|filipina|philippine|pinoy|\bofw\b|manila|\u0641\u0644\u0628\u064a\u0646|\u0627\u0644\u0641\u0644\u0628\u064a\u0646", re.I)
 JO = re.compile(r"job order|vacanc|urgent|now hiring|we (?:are )?(?:need|hiring|looking)|required|demand|openings?|positions? available|requirement", re.I)
 PART = re.compile(r"partner|collaborat|philippine agenc|agenc(?:y|ies) (?:in|from) the philippines|accredited agenc|sub-?agent|looking for (?:a )?(?:philippine|filipino)", re.I)
 LIC = re.compile(r"(?:licen[cs]e|licen[cs]ed|musaned|commercial registration|\bcr\b|ministry of (?:human resources|labou?r)|mwo|polo)[^.\n]{0,70}", re.I)
@@ -41,16 +46,22 @@ WA = re.compile(r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{8,15})", re.I)
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
 
 MAX_SECONDS = int(os.environ.get("MAX_SECONDS", "17000"))
-TARGET = int(os.environ.get("FRA_TARGET", "300"))
+TARGET = int(os.environ.get("FRA_TARGET", "500"))
 WORKERS = int(os.environ.get("WORKERS", "6"))
 
 
 def build_queries(day):
     out = []
+    for names in (AR_SA, AR_QA):
+        keys = list(names)
+        for n, a in enumerate(ARABIC):
+            for k in range(3):
+                c = names[keys[(day * 3 + n + k) % len(keys)]]
+                out.append(a.format(c=c) + " | FRA")
     for cities, temps, tag in ((SAUDI, SAUDI_T, "Saudi"), (QATAR, QATAR_T, "Qatar")):
         for n, t in enumerate(temps):
-            for k in range(4 if tag == "Saudi" else 3):
-                out.append(t.format(c=cities[(day * 4 + n * 3 + k) % len(cities)]) + " | FRA")
+            for k in range(6 if tag == "Saudi" else 4):
+                out.append(t.format(c=cities[(day * 6 + n * 3 + k) % len(cities)]) + " | FRA")
     return [g + " | FRA" for g in GENERIC] + out
 
 
