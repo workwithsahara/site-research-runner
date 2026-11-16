@@ -24,7 +24,7 @@ jobs:
       - run: python -m unittest tests.test_fra
       - run: python fra.py
         env:
-          FRA_TARGET: "300"
+          FRA_TARGET: "500"
           WORKERS: "6"
           CRAWL_DELAY: "0.5"
           MAX_SECONDS: "16000"
