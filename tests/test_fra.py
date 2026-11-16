@@ -12,6 +12,11 @@ class FraTests(unittest.TestCase):
         self.assertEqual(res["emails"][0], "info@gulfstar.sa")
         self.assertEqual(res["partner"], "Yes")
 
+    def test_placeholder_email_dropped(self):
+        html = "<html><body>Saudi Arabia Riyadh Filipino workers. Call +966 55 123 4567. Mail info@realoffice.sa or building@yoursite.com</body></html>"
+        res, why = fra.evaluate("realoffice.sa", [("https://realoffice.sa", html)])
+        self.assertEqual(res["emails"], ["info@realoffice.sa"])
+
     def test_philippine_agency_rejected(self):
         html = "<html><body>POEA licensed agency in Manila. Jobs in Saudi Arabia and Riyadh. Email hr@example.ph</body></html>"
         res, why = fra.evaluate("agency.com.ph", [("https://agency.com.ph", html)])
