@@ -29,7 +29,7 @@ GENERIC = ["Saudi recruitment agency looking for Philippine agency partnership",
            "Saudi manpower agency Filipino domestic workers accredited POLO", "Qatar recruitment office accredited MWO Filipino workers",
            "Saudi recruitment agency Filipino housemaid", "Qatar manpower supply Filipino skilled workers"]
 
-COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Phone", "WhatsApp", "Hires for",
+COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Hires for",
         "Open job order signals", "Seeks Philippine partner agencies", "Licence or verification clue", "Pages read"]
 
 DH = re.compile(r"domestic (?:worker|helper|staff)|house ?maid|\bmaids?\b|household (?:service )?worker|\bhsw\b|nanny|housekeeper", re.I)
@@ -96,7 +96,8 @@ def evaluate(domain, pages):
                 qa += 1
         wa += [("+" + x.lstrip("+")) for x in WA.findall(raw)]
     has_phone = bool(phones)
-    if not has_phone and not domain.endswith((".sa", ".qa")):
+    mail_gulf = any(e.endswith((".sa", ".qa")) for e in s.extract_emails("".join(raws)))
+    if not has_phone and not mail_gulf and not domain.endswith((".sa", ".qa")):
         return None, "no Saudi or Qatar number or domain"
     if sa < 2 and qa < 2:
         return None, "not Saudi or Qatar"
@@ -108,8 +109,10 @@ def evaluate(domain, pages):
     emails = sorted(e for e in emails if not e.endswith((".gov", ".gov.sa")))
     phones = list(dict.fromkeys(phones))
     wa = list(dict.fromkeys(wa))
-    if not (emails or phones or wa):
-        return None, "no contact found"
+    if not emails:
+        return None, "no email found"
+    own = [e for e in emails if e.split("@")[-1].replace("www.", "") in domain or domain in e.split("@")[-1]]
+    emails = (own + [e for e in emails if e not in own])
     dh, sk = bool(DH.search(text)), len(SK.findall(text)) >= 2
     hires = "Both" if dh and sk else "Domestic helpers" if dh else "Skilled" if sk else "Unclear"
     sents = re.split(r"[.\n|•]+", re.sub(r"\s+", " ", text))
@@ -172,7 +175,7 @@ def main():
     st = store.Store()
     checked = st.read_domains("FRA Checked")
     have_rows = st.read_table("FRA Leads")
-    have_c = {(r.get("Email", "") + "").lower() for r in have_rows} | {(r.get("Phone", "") + "") for r in have_rows}
+    have_c = {e.strip().lower() for r in have_rows for e in (r.get("Email", "") or "").split(",") if e.strip()}
     in_sheet = {(r.get("Website", "") or "").lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/") for r in have_rows}
     print(f"Loaded {len(checked)} checked and {len(have_rows)} agencies from the sheet", flush=True)
     session = requests.Session()
@@ -200,15 +203,13 @@ def main():
             if res is None:
                 crows.append([d, stamp, why])
                 continue
-            key_e = res["emails"][0] if res["emails"] else ""
-            key_p = res["phones"][0] if res["phones"] else ""
-            if (key_e and key_e in have_c) or (key_p and key_p in have_c):
-                crows.append([d, stamp, "duplicate contact"])
+            if any(e in have_c for e in res["emails"]):
+                crows.append([d, stamp, "duplicate email"])
                 continue
-            have_c |= {key_e, key_p}
+            have_c |= set(res["emails"])
             crows.append([d, stamp, "saved"])
             rows.append([stamp, name or d, "https://" + d, res["country"], res["city"], ", ".join(res["emails"]),
-                         ", ".join(res["phones"]), ", ".join(res["wa"]), res["hires"], " | ".join(res["signals"]),
+                         res["hires"], " | ".join(res["signals"]),
                          res["partner"], res["licence"], res["pages"]])
         st.add_rows("FRA Leads", rows)
         st.add_rows("FRA Checked", crows)
