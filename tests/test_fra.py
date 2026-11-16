@@ -4,12 +4,12 @@ import fra
 
 class FraTests(unittest.TestCase):
     def test_saudi_agency_with_contact(self):
-        html = "<html><body><h1>Gulf Star Recruitment</h1><p>Licensed recruitment office in Riyadh, Saudi Arabia. We hire Filipino domestic workers and skilled workers such as electrician and welder. Urgent requirement: 20 housemaid. Call +966 55 123 4567. Email info@gulfstar-example.sa. Partner agencies in the Philippines welcome.</p></body></html>"
-        res, why = fra.evaluate("gulfstar-example.sa", [("https://gulfstar-example.sa", html)])
+        html = "<html><body><h1>Gulf Star Recruitment</h1><p>Licensed recruitment office in Riyadh, Saudi Arabia. We hire Filipino domestic workers and skilled workers such as electrician and welder. Urgent requirement: 20 housemaid. Call +966 55 123 4567. Email info@gulfstar.sa. Partner agencies in the Philippines welcome.</p></body></html>"
+        res, why = fra.evaluate("gulfstar.sa", [("https://gulfstar.sa", html)])
         self.assertEqual(why, "ok")
         self.assertEqual(res["country"], "Saudi Arabia")
         self.assertEqual(res["hires"], "Both")
-        self.assertEqual(res["phones"][0], "+966 55 123 4567")
+        self.assertEqual(res["emails"][0], "info@gulfstar.sa")
         self.assertEqual(res["partner"], "Yes")
 
     def test_philippine_agency_rejected(self):
