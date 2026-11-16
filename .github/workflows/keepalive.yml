@@ -1,0 +1,16 @@
+name: Keep schedules active
+on:
+  schedule:
+    - cron: "5 3 1 * *"
+  workflow_dispatch:
+permissions:
+  actions: write
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow enable leads.yml --repo "$GITHUB_REPOSITORY"
+          gh workflow enable fra.yml --repo "$GITHUB_REPOSITORY"
