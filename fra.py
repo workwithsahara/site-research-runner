@@ -108,7 +108,8 @@ def evaluate(domain, pages):
     emails = set()
     for raw in raws:
         emails |= s.extract_emails(raw)
-    emails = sorted(e for e in emails if not e.endswith((".gov", ".gov.sa")))
+    junk = ("yoursite", "yourdomain", "yourcompany", "domain.com", "email.com", "mysite", "sitename", "website.com", "company.com", "test.com", "name@", "your@", "user@", "noreply", "no-reply")
+    emails = sorted(e for e in emails if not e.endswith((".gov", ".gov.sa")) and not any(j in e for j in junk))
     phones = list(dict.fromkeys(phones))
     wa = list(dict.fromkeys(wa))
     if not emails:
