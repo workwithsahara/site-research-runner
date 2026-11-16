@@ -10,7 +10,7 @@ TABS = {
     "Review": ["Date found", "Company", "Website", "Owner or founder (public)", "Email", "Phone", "Industry",
                "Based in", "Why it did not pass"],
     "Runs": ["Finished (UTC)", "New leads", "Sites checked", "Stopped because"],
-    "FRA Leads": ["Date found", "Agency", "Website", "Country", "City", "Email", "Phone", "WhatsApp", "Hires for",
+    "FRA Leads": ["Date found", "Agency", "Website", "Country", "City", "Email", "Hires for",
                   "Open job order signals", "Seeks Philippine partner agencies", "Licence or verification clue", "Pages read"],
     "FRA Checked": ["Domain", "Date", "Result"],
 }
