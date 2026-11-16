@@ -10,6 +10,9 @@ TABS = {
     "Review": ["Date found", "Company", "Website", "Owner or founder (public)", "Email", "Phone", "Industry",
                "Based in", "Why it did not pass"],
     "Runs": ["Finished (UTC)", "New leads", "Sites checked", "Stopped because"],
+    "FRA Leads": ["Date found", "Agency", "Website", "Country", "City", "Email", "Phone", "WhatsApp", "Hires for",
+                  "Open job order signals", "Seeks Philippine partner agencies", "Licence or verification clue", "Pages read"],
+    "FRA Checked": ["Domain", "Date", "Result"],
 }
 
 
@@ -83,3 +86,16 @@ class Store:
     def add_run(self, new, checked, stop):
         now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         self._append("Runs", [[now, new, checked, stop]])
+
+    def read_domains(self, tab):
+        return {(r[0] or "").strip().lower() for r in self._read(tab, "A:A")[1:] if r}
+
+    def read_table(self, tab):
+        rows = self._read(tab, "A:Z")
+        if not rows:
+            return []
+        head = rows[0]
+        return [dict(zip(head, r + [""] * (len(head) - len(r)))) for r in rows[1:] if any(r)]
+
+    def add_rows(self, tab, rows):
+        self._append(tab, rows)
