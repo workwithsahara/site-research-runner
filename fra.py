@@ -35,7 +35,7 @@ PART = re.compile(r"partner|collaborat|philippine agenc|agenc(?:y|ies) (?:in|fro
 LIC = re.compile(r"(?:licen[cs]e|licen[cs]ed|musaned|commercial registration|\bcr\b|ministry of (?:human resources|labou?r)|mwo|polo)[^.\n]{0,70}", re.I)
 SA_W = re.compile(r"saudi|\bksa\b|riyadh|jeddah|dammam|khobar|mecca|makkah|medina|madinah|taif|abha|tabuk|jubail|yanbu", re.I)
 QA_W = re.compile(r"qatar|doha|wakrah|al khor|lusail|rayyan", re.I)
-PH_AGENCY = re.compile(r"\bpoea\b|\bdmw\b[^.]{0,40}licen[cs]e|licen[cs]e no\.?\s*[a-z]{2,4}-?\d", re.I)
+PH_AGENCY = re.compile(r"migrant workers office|philippine embassy|department of migrant workers|dmw\.gov|\bpoea\b|\bdmw\b[^.]{0,40}licen[cs]e|licen[cs]e no\.?\s*[a-z]{2,4}-?\d", re.I)
 GULF_PHONE = re.compile(r"(?:\+|00)\s?(966|974)[\s\-]?\(?0?\)?[\s\-]?(\d{1,2})[\s\-]?(\d{3})[\s\-]?(\d{3,4})")
 WA = re.compile(r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{8,15})", re.I)
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
@@ -85,8 +85,8 @@ def evaluate(domain, pages):
                 qa += 1
         wa += [("+" + x.lstrip("+")) for x in WA.findall(raw)]
     has_phone = bool(phones)
-    if not has_phone and not domain.endswith((".sa", ".qa")) and sa < 6 and qa < 6:
-        return None, "not clearly Saudi or Qatar"
+    if not has_phone and not domain.endswith((".sa", ".qa")):
+        return None, "no Saudi or Qatar number or domain"
     if sa < 2 and qa < 2:
         return None, "not Saudi or Qatar"
     if not FIL.search(text):
@@ -199,10 +199,6 @@ def main():
             rows.append([stamp, name or d, "https://" + d, res["country"], res["city"], ", ".join(res["emails"]),
                          ", ".join(res["phones"]), ", ".join(res["wa"]), res["hires"], " | ".join(res["signals"]),
                          res["partner"], res["licence"], res["pages"]])
-        for r in rows:
-            for j, v in enumerate(r):
-                if isinstance(v, str) and v and v[0] in "+=-@":
-                    r[j] = "'" + v
         st.add_rows("FRA Leads", rows)
         st.add_rows("FRA Checked", crows)
         new += len(rows)
