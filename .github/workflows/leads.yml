@@ -1,0 +1,43 @@
+name: Site research
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "How many results to find this run"
+        default: "800"
+  schedule:
+    - cron: "17 */6 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: site-research
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      SHEET_ID: ${{ secrets.SHEET_ID }}
+      SHEET_TAB: Leads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Check whether a run is due
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+        run: python gate.py
+      - run: python -m unittest discover tests
+        if: steps.gate.outputs.go == 'true'
+      - run: python run.py
+        if: steps.gate.outputs.go == 'true'
+        env:
+          TARGET_PER_DAY: ${{ inputs.target || '800' }}
+          MAX_STORES: "20000"
+          WORKERS: "8"
+          CRAWL_DELAY: "0.5"
+          MAX_SECONDS: "20400"
