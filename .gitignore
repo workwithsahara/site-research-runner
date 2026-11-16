@@ -1,0 +1,5 @@
+output/
+*.csv
+*.json
+.env
+__pycache__/
