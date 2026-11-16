@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin, urlparse
 
+import dns.resolver
 import requests
 from bs4 import BeautifulSoup
 
@@ -29,8 +30,8 @@ GENERIC = ["Saudi recruitment agency looking for Philippine agency partnership",
            "Saudi manpower agency Filipino domestic workers accredited POLO", "Qatar recruitment office accredited MWO Filipino workers",
            "Saudi recruitment agency Filipino housemaid", "Qatar manpower supply Filipino skilled workers"]
 
-COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Hires for",
-        "Open job order signals", "Seeks Philippine partner agencies", "Licence or verification clue", "Pages read"]
+COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Email domain receives mail", "Hires for",
+        "Open job order signals", "Seeks Philippine partner agencies", "Licence or verification clue", "Licence number on site", "Pages read"]
 
 DH = re.compile(r"domestic (?:worker|helper|staff)|house ?maid|\bmaids?\b|household (?:service )?worker|\bhsw\b|nanny|housekeeper", re.I)
 SK = re.compile(r"skilled|technician|engineer|nurse|welder|electrician|mechanic|construction|hospitality|chef|manpower supply|labou?r supply|plumber|carpenter|steel|operator", re.I)
@@ -43,6 +44,7 @@ QA_W = re.compile(r"qatar|doha|wakrah|al khor|lusail|rayyan", re.I)
 PH_AGENCY = re.compile(r"migrant workers office|philippine embassy|department of migrant workers|dmw\.gov|\bpoea\b|\bdmw\b[^.]{0,40}licen[cs]e|licen[cs]e no\.?\s*[a-z]{2,4}-?\d", re.I)
 GULF_PHONE = re.compile(r"(?:\+|00)\s?(966|974)[\s\-]?\(?0?\)?[\s\-]?(\d{1,2})[\s\-]?(\d{3})[\s\-]?(\d{3,4})")
 WA = re.compile(r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{8,15})", re.I)
+LICNUM = re.compile(r"(?:licen[cs]e|musaned|\u0631\u062e\u0635\u0629)[^0-9]{0,25}(\d{6,12})", re.I)
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
 
 MAX_SECONDS = int(os.environ.get("MAX_SECONDS", "17000"))
@@ -122,7 +124,8 @@ def evaluate(domain, pages):
     country = "Saudi Arabia" if sa >= qa else "Qatar"
     cities = SAUDI if country == "Saudi Arabia" else QATAR
     city = next((c for c in cities if re.search(c, text, re.I)), "")
-    return {"emails": emails[:3], "phones": phones[:2], "wa": wa[:1], "hires": hires, "signals": sig,
+    ln = LICNUM.search(text)
+    return {"licnum": ln.group(1) if ln else "", "emails": emails[:3], "phones": phones[:2], "wa": wa[:1], "hires": hires, "signals": sig,
             "partner": "Yes" if PART.search(text) else "Not stated", "licence": (lic.group(0).strip()[:100] if lic else ""),
             "country": country, "city": city, "pages": len(pages)}, "ok"
 
@@ -155,6 +158,17 @@ def fetch(domain, session):
     return pages, "ok"
 
 
+def mx_ok(email):
+    host = email.split("@")[-1]
+    try:
+        return bool(len(dns.resolver.resolve(host, "MX", lifetime=6)))
+    except Exception:
+        try:
+            return bool(len(dns.resolver.resolve(host, "A", lifetime=6)))
+        except Exception:
+            return False
+
+
 def work(domain):
     try:
         session = requests.Session()
@@ -162,6 +176,10 @@ def work(domain):
         if pages is None:
             return domain, None, why, ""
         res, why = evaluate(domain, pages)
+        if res:
+            res["mx"] = mx_ok(res["emails"][0])
+            if not res["mx"]:
+                return domain, None, "email domain cannot receive mail", ""
         name = s.clean_company(BeautifulSoup(pages[0][1], "html.parser"), domain) if res else ""
         return domain, res, why, name
     except Exception as e:
@@ -209,8 +227,8 @@ def main():
             have_c |= set(res["emails"])
             crows.append([d, stamp, "saved"])
             rows.append([stamp, name or d, "https://" + d, res["country"], res["city"], ", ".join(res["emails"]),
-                         res["hires"], " | ".join(res["signals"]),
-                         res["partner"], res["licence"], res["pages"]])
+                         "Yes", res["hires"], " | ".join(res["signals"]),
+                         res["partner"], res["licence"], res["licnum"], res["pages"]])
         st.add_rows("FRA Leads", rows)
         st.add_rows("FRA Checked", crows)
         new += len(rows)
