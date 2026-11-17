@@ -16,6 +16,7 @@ import search  # noqa: E402
 import store  # noqa: E402
 import fresh  # noqa: E402
 import shard_queries  # noqa: E402
+import shard_more  # noqa: E402
 
 import run  # noqa: E402
 
@@ -59,7 +60,7 @@ def _discover(queries, session, *a, **k):
 
 scraper.discover = _discover
 run.BAD_HOSTS = run.BAD_HOSTS + shard_queries.BIG
-_expand = shard_queries.make_expander(run.CITIES)
+_expand = shard_more.make_expander(run.CITIES)
 
 
 def _expand_shard(queries, today, *a, **k):
