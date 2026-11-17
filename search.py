@@ -109,6 +109,13 @@ def search_hosts(words, session, per_query=30):
                 cool(name, True)
                 continue
             time.sleep(0.7)
+            if r.status_code >= 500 and name.startswith("yahoo"):  # Yahoo gives 5xx now and then, try once more before pausing
+                time.sleep(2.0)
+                try:
+                    r = session.get(tpl.format(q=quote_plus(words.strip())), timeout=20,
+                                    headers={"User-Agent": SEARCH_UA, "Accept-Language": "en-US,en;q=0.9"})
+                except requests.RequestException:
+                    pass
             if r.status_code != 200:
                 _stat(name, "blocked")
                 cool(name, r.status_code in (403, 429))  # 5xx from Yahoo comes and goes, only a short pause
