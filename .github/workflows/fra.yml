@@ -32,6 +32,6 @@ jobs:
           FRA_TARGET: "1200"
           SHARD: ${{ matrix.shard }}
           SHARDS: "10"
-          WORKERS: "6"
+          WORKERS: "12"
           CRAWL_DELAY: "0.5"
           MAX_SECONDS: "16000"

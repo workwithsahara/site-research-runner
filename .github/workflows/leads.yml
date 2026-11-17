@@ -45,6 +45,6 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: "10"
           MAX_STORES: "20000"
-          WORKERS: "8"
+          WORKERS: "20"
           CRAWL_DELAY: "0.5"
           MAX_SECONDS: "20400"
