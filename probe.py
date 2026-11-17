@@ -1,27 +1,29 @@
-"""Shows what deeper Bing and Yahoo result pages return from this runner (hosts only)."""
+"""Checks whether OpenStreetMap Overpass is reachable from this runner and how many business websites it returns."""
 import time
-from urllib.parse import quote_plus
 
 import requests
 
-import search
-
-QS = ["مكتب استقدام عمالة منزلية الفلبين", "مكتب استقدام الرياض واتساب", "roofing contractor Tulsa Oklahoma"]
-URLS = [("bing_p1", "https://www.bing.com/search?q={q}"),
-        ("bing_p2", "https://www.bing.com/search?q={q}&first=11"),
-        ("bing_p3", "https://www.bing.com/search?q={q}&first=21"),
-        ("bing_p4", "https://www.bing.com/search?q={q}&first=31"),
-        ("yahoo_p1", "https://search.yahoo.com/search?p={q}"),
-        ("yahoo_p2", "https://search.yahoo.com/search?p={q}&b=11"),
-        ("yahoo_p3", "https://search.yahoo.com/search?p={q}&b=21")]
-s = requests.Session()
-for q in QS:
-    print("QUERY", q.encode("unicode_escape").decode() if not q.isascii() else q, flush=True)
-    for name, tpl in URLS:
+ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
+             "https://overpass.private.coffee/api/interpreter"]
+QUERIES = {
+    "saudi_employment_agency": '[out:json][timeout:60];area["ISO3166-1"="SA"]->.a;(nwr["office"="employment_agency"](area.a););out tags 2000;',
+    "qatar_employment_agency": '[out:json][timeout:60];area["ISO3166-1"="QA"]->.a;(nwr["office"="employment_agency"](area.a););out tags 2000;',
+    "saudi_recruit_name": '[out:json][timeout:60];area["ISO3166-1"="SA"]->.a;(nwr["name"~"recruit|استقدام|manpower",i](area.a););out tags 2000;',
+    "us_plumber_tx": '[out:json][timeout:60];area["ISO3166-2"="US-TX"]->.a;(nwr["craft"="plumber"]["website"](area.a););out tags 300;',
+}
+for name, q in QUERIES.items():
+    for ep in ENDPOINTS:
         try:
-            r = s.get(tpl.format(q=quote_plus(q)), timeout=20, headers={"User-Agent": search.SEARCH_UA, "Accept-Language": "en-US,en;q=0.9"})
-            hosts = search.result_hosts(r.text, 12)
-            print(f"  {name} {r.status_code} {hosts}", flush=True)
+            r = requests.post(ep, data={"data": q}, timeout=90, headers={"User-Agent": "site-research-runner/1.0"})
+            if r.status_code != 200:
+                print(name, ep, r.status_code, flush=True)
+                time.sleep(3)
+                continue
+            els = r.json().get("elements", [])
+            sites = [e["tags"].get("website") or e["tags"].get("contact:website") for e in els]
+            sites = [x for x in sites if x]
+            print(name, ep, "elements", len(els), "with website", len(sites), sites[:5], flush=True)
+            break
         except Exception as e:
-            print(f"  {name} error {type(e).__name__}", flush=True)
-        time.sleep(1.5)
+            print(name, ep, "error", type(e).__name__, flush=True)
+    time.sleep(5)
