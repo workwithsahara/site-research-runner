@@ -11,10 +11,11 @@ from bs4 import BeautifulSoup
 SEARCH_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
              "Chrome/124.0 Safari/537.36")
 ENGINES = [
-    ("bing1", "https://www.bing.com/search?q={q}&setlang=en&cc=us"),
-    ("bing2", "https://www.bing.com/search?q={q}&setlang=en&cc=us&first=11"),
-    ("bing3", "https://www.bing.com/search?q={q}&setlang=en&cc=us&first=21"),
-    ("yahoo", "https://search.yahoo.com/search?p={q}&n=30"),
+    ("bing", "https://www.bing.com/search?q={q}&setlang=en&cc=us"),
+    ("yahoo1", "https://search.yahoo.com/search?p={q}"),
+    ("yahoo2", "https://search.yahoo.com/search?p={q}&b=11"),
+    ("yahoo3", "https://search.yahoo.com/search?p={q}&b=21"),
+    ("yahoo4", "https://search.yahoo.com/search?p={q}&b=31"),
 ]
 ENGINE_HOSTS = ("duckduckgo.", "bing.", "microsoft.", "mojeek.", "brave.", "yahoo.", "yimg.", "oath.", "w3.org",
                 "google.", "gstatic.", "startpage.", "msn.")
@@ -88,7 +89,7 @@ def stats_line():
 
 
 def search_hosts(words, session, per_query=30):
-    """Asks every source that is not cooling down (Bing pages 1-3 and Yahoo) and merges what they find."""
+    """Asks every source that is not cooling down (Bing page 1 and Yahoo pages 1-4) and merges what they find."""
     for _ in range(30):
         now = time.time()
         ready = [e for e in ENGINES if _state[e[0]]["until"] <= now]
@@ -108,7 +109,7 @@ def search_hosts(words, session, per_query=30):
             time.sleep(0.7)
             if r.status_code != 200:
                 _stat(name, "blocked")
-                cool(name, True)
+                cool(name, r.status_code in (403, 429))  # 5xx from Yahoo comes and goes, only a short pause
                 continue
             hosts = result_hosts(r.text, per_query)
             if not hosts:

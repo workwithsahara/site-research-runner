@@ -13,10 +13,10 @@ class SearchTests(unittest.TestCase):
                          ["acme-recruit.com", "example-agency.com", "test-staff.com", "plain-site.org"])
 
     def test_blocked_engine_is_paused(self):
-        before = search._state["bing1"]["until"]
-        search.cool("bing1", True)
-        self.assertGreater(search._state["bing1"]["until"], before)
-        search._state["bing1"].update({"until": 0.0, "strikes": 0})
+        before = search._state["bing"]["until"]
+        search.cool("bing", True)
+        self.assertGreater(search._state["bing"]["until"], before)
+        search._state["bing"].update({"until": 0.0, "strikes": 0})
 
     def test_search_merges_sources(self):
         class R:
@@ -31,7 +31,7 @@ class SearchTests(unittest.TestCase):
             st.update({"until": 0.0, "strikes": 0})
         out = search.search_hosts("roofing Tulsa", S(), 30)
         self.assertIn("shared.com", out)
-        self.assertEqual(len(out), 5)
+        self.assertEqual(len(out), 6)
 
     def test_only_real_results_when_page_has_result_blocks(self):
         html = ('<ul><li class="b_algo"><h2><a href="https://real-agency.com/">r</a></h2></li></ul>'
