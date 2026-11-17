@@ -13,10 +13,25 @@ class SearchTests(unittest.TestCase):
                          ["acme-recruit.com", "example-agency.com", "test-staff.com", "plain-site.org"])
 
     def test_blocked_engine_is_paused(self):
-        before = search._state["ddg"]["until"]
-        search.cool("ddg", True)
-        self.assertGreater(search._state["ddg"]["until"], before)
-        search._state["ddg"].update({"until": 0.0, "strikes": 0})
+        before = search._state["bing1"]["until"]
+        search.cool("bing1", True)
+        self.assertGreater(search._state["bing1"]["until"], before)
+        search._state["bing1"].update({"until": 0.0, "strikes": 0})
+
+    def test_search_merges_sources(self):
+        class R:
+            status_code = 200
+            def __init__(self, t): self.text = t
+        class S:
+            n = 0
+            def get(self, url, **k):
+                S.n += 1
+                return R('<a href="https://site%d.com/">x</a><a href="https://shared.com/">y</a>' % S.n)
+        for st in search._state.values():
+            st.update({"until": 0.0, "strikes": 0})
+        out = search.search_hosts("roofing Tulsa", S(), 30)
+        self.assertIn("shared.com", out)
+        self.assertEqual(len(out), 5)
 
 
 if __name__ == "__main__":
