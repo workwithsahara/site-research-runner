@@ -22,12 +22,16 @@ SAUDI_T = ["recruitment office {c} Filipino domestic workers", "manpower recruit
            "{c} manpower supply company Filipino workers contact",
            "{c} Filipino nurses hospital staff recruitment agency", "{c} agency hiring Filipino hotel restaurant staff",
            "{c} Filipino drivers cleaners labour supply company", "{c} housemaid recruitment office Filipino contact email",
-           "{c} recruitment agency looking for Philippine partner agency"]
+           "{c} recruitment agency looking for Philippine partner agency",
+           "{c} recruitment office foreign workers visa manpower supply", "{c} licensed recruitment office domestic workers from abroad",
+           "{c} manpower supply company contact email", "{c} \u0645\u0643\u062a\u0628 \u0627\u0633\u062a\u0642\u062f\u0627\u0645 \u0639\u0645\u0627\u0644\u0629 \u0645\u0646\u0632\u0644\u064a\u0629"]
 QATAR_T = ["recruitment agency {c} Filipino domestic workers", "manpower supply company {c} Filipino workers",
            "{c} recruitment office Philippines skilled workers", "{c} company hiring Filipino workers job order",
            "{c} maid agency Filipina housemaid", "{c} licensed recruitment agency Philippines contact",
            "{c} Filipino nurses hospital staff recruitment agency", "{c} agency hiring Filipino hotel restaurant staff",
-           "{c} Filipino drivers cleaners labour supply company", "{c} recruitment agency looking for Philippine partner agency"]
+           "{c} Filipino drivers cleaners labour supply company", "{c} recruitment agency looking for Philippine partner agency",
+           "{c} recruitment office foreign workers visa manpower supply", "{c} licensed recruitment office domestic workers from abroad",
+           "{c} manpower supply company contact email", "{c} \u0645\u0643\u062a\u0628 \u0627\u0633\u062a\u0642\u062f\u0627\u0645 \u0639\u0645\u0627\u0644\u0629 \u0645\u0646\u0632\u0644\u064a\u0629"]
 ARABIC = ["مكتب استقدام عمالة فلبينية {c}", "استقدام خادمات فلبينيات {c}", "شركة استقدام من الفلبين {c}", "مكتب استقدام عمالة منزلية الفلبين"]
 AR_SA = {"Riyadh": "الرياض", "Jeddah": "جدة", "Dammam": "الدمام", "Khobar": "الخبر", "Mecca": "مكة", "Medina": "المدينة المنورة", "Taif": "الطائف", "Abha": "أبها", "Tabuk": "تبوك", "Buraidah": "بريدة"}
 AR_QA = {"Doha": "الدوحة", "Al Wakrah": "الوكرة", "Al Khor": "الخور", "Lusail": "لوسيل", "Al Rayyan": "الريان"}
@@ -50,6 +54,8 @@ PH_AGENCY = re.compile(r"migrant workers office|philippine embassy|department of
 GULF_PHONE = re.compile(r"(?:\+|00)\s?(966|974)[\s\-]?\(?0?\)?[\s\-]?(\d{1,2})[\s\-]?(\d{3})[\s\-]?(\d{3,4})")
 WA = re.compile(r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{8,15})", re.I)
 LICNUM = re.compile(r"(?:licen[cs]e|musaned|\u0631\u062e\u0635\u0629)[^0-9]{0,25}(\d{6,12})", re.I)
+AGENCY = re.compile(r"recruit|manpower|man power|staffing|labou?r supply|housemaid|domestic (?:worker|helper)|\bmaids?\b|\u0627\u0633\u062a\u0642\u062f\u0627\u0645|\u062a\u0648\u0638\u064a\u0641|\u0639\u0645\u0627\u0644\u0629", re.I)
+ABROAD = re.compile(r"abroad|overseas|foreign|imported|\bvisa\b|from (?:india|bangladesh|pakistan|kenya|uganda|indonesia|sri lanka|ethiopia|nepal|philippines)|\u0627\u0633\u062a\u0642\u062f\u0627\u0645|\u0645\u0646 \u0627\u0644\u062e\u0627\u0631\u062c|\u0627\u0644\u062a\u0623\u0634\u064a\u0631\u0629", re.I)
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
 
 MAX_SECONDS = int(os.environ.get("MAX_SECONDS", "17000"))
@@ -109,8 +115,9 @@ def evaluate(domain, pages):
         return None, "no Saudi or Qatar number or domain"
     if sa < 2 and qa < 2:
         return None, "not Saudi or Qatar"
-    if not FIL.search(text):
-        return None, "no mention of Filipino workers"
+    fil = bool(FIL.search(text))
+    if not fil and not (AGENCY.search(text) and ABROAD.search(text)):
+        return None, "not a recruitment agency hiring from abroad"
     emails = set()
     for raw in raws:
         emails |= s.extract_emails(raw)
@@ -133,7 +140,7 @@ def evaluate(domain, pages):
     city = next((c for c in cities if re.search(c, text, re.I)), "")
     ln = LICNUM.search(text)
     return {"licnum": ln.group(1) if ln else "", "emails": emails[:3], "phones": phones[:2], "wa": wa[:1], "hires": hires, "signals": sig,
-            "partner": "Yes" if PART.search(text) else "Not stated", "licence": (lic.group(0).strip()[:100] if lic else ""),
+            "partner": ("Yes" if PART.search(text) else "Not stated") if fil else "No Filipino workers mentioned (possible open market)", "licence": (lic.group(0).strip()[:100] if lic else ""),
             "country": country, "city": city, "pages": len(pages)}, "ok"
 
 
@@ -198,7 +205,7 @@ def main():
     day = datetime.date.today().toordinal()
     stamp = datetime.date.today().isoformat()
     st = store.Store()
-    checked = st.read_domains("FRA Checked")
+    checked = {(r.get("Domain") or "").strip().lower() for r in st.read_table("FRA Checked") if (r.get("Result") or "") != "no mention of Filipino workers"}
     have_rows = st.read_table("FRA Leads")
     have_c = {e.strip().lower() for r in have_rows for e in (r.get("Email", "") or "").split(",") if e.strip()}
     in_sheet = {(r.get("Website", "") or "").lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/") for r in have_rows}
