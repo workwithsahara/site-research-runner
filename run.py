@@ -41,7 +41,7 @@ CITIES = {
 }
 
 
-def expand_queries(queries, today, variants=8):
+def expand_queries(queries, today, variants=int(os.environ.get("VARIANTS", "30"))):
     """Same searches return the same sites every day. A US state or a city that changes daily gives fresh results."""
     day = today.toordinal()
     out = []
@@ -176,10 +176,18 @@ def main():
             print(f"checked {state['done']} sites, {len(new_rows)} new leads so far, {state['errors']} errors", flush=True)
         return True
 
+    # seed list from Clay and government registers first (domain | Industry | headcount | Country | Locality | Company)
+    seeds = [s.parse_seed(l) for l in s.read_lines("seeds.txt")]
+    seeds = [x for x in seeds if x["domain"]]
+    if seeds:
+        q = enqueue(seeds)
+        print(f"seed list: {len(seeds)} entries, {len(q)} not checked yet", flush=True)
+        if not process(q):
+            seeds = None
     # searches in small chunks, checking what each chunk finds before searching again
     qs = expand_queries(s.read_lines("queries.txt"), today)
     chunk = QUERY_CHUNK
-    for j in range(0, len(qs), chunk):
+    for j in range(0, len(qs) if seeds is not None else 0, chunk):
         if time.time() - started > MAX_SECONDS:
             state["stop"] = "hit the time limit"
             break
