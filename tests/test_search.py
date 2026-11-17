@@ -33,6 +33,12 @@ class SearchTests(unittest.TestCase):
         self.assertIn("shared.com", out)
         self.assertEqual(len(out), 5)
 
+    def test_only_real_results_when_page_has_result_blocks(self):
+        html = ('<ul><li class="b_algo"><h2><a href="https://real-agency.com/">r</a></h2></li></ul>'
+                '<div class="b_ans"><a href="https://emojipedia.org/">junk</a></div>'
+                '<div class="b_rs"><a href="https://soundboard.com/">related</a></div>')
+        self.assertEqual(search.result_hosts(html, 30), ["real-agency.com"])
+
 
 if __name__ == "__main__":
     unittest.main()

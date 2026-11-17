@@ -51,7 +51,10 @@ def real_url(href):
 def result_hosts(html_text, limit):
     soup = BeautifulSoup(html_text, "html.parser")
     out = []
-    for a in soup.find_all("a", href=True):
+    # Only the real result links, not sidebars, related searches or ads. Plain pages fall back to every link.
+    anchors = soup.select("li.b_algo h2 a, li.b_algo .b_title a, div.algo h3 a, div.algo .compTitle a, .compTitle h3 a, h3.title a")
+    anchors = [a for a in anchors if a.get("href")] or soup.find_all("a", href=True)[:12]
+    for a in anchors:
         url = real_url(a["href"])
         if not url.startswith("http"):
             continue
