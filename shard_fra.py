@@ -30,16 +30,22 @@ fra.ARABIC.extend(["مكتب استقدام {c} تواصل معنا", "شركة 
 
 
 def build(day, rnd=0):
-    out = [g + " | FRA" for g in fra.GENERIC] if rnd == 0 else []
+    ar, en = [], []
     for names in (fra.AR_SA, fra.AR_QA):
         keys = list(names)
         for k in range(len(keys)):
             for n, a in enumerate(fra.ARABIC):
-                out.append(a.format(c=names[keys[(day * 3 + n + k + rnd * 7) % len(keys)]]) + " | FRA")
+                ar.append(a.format(c=names[keys[(day * 3 + n + k + rnd * 7) % len(keys)]]) + " | FRA")
     for cities, temps in ((fra.SAUDI, fra.SAUDI_T), (fra.QATAR, fra.QATAR_T)):
         for k in range(len(cities)):
             for n, t in enumerate(temps):
-                out.append(t.format(c=cities[(day * 3 + n + k + rnd * 7) % len(cities)]) + " | FRA")
+                en.append(t.format(c=cities[(day * 3 + n + k + rnd * 7) % len(cities)]) + " | FRA")
+    out = [g + " | FRA" for g in fra.GENERIC] if rnd == 0 else []
+    for i in range(max(len(ar), len(en))):  # English searches first, Arabic mixed in, so both kinds run every round
+        if i < len(en):
+            out.append(en[i])
+        if i < len(ar) and i % 2 == 0:
+            out.append(ar[i])
     return out
 
 

@@ -99,7 +99,10 @@ def search_hosts(words, session, per_query=30):
         for name, tpl in ready:
             _stat(name, "req")
             try:
-                r = session.get(tpl.format(q=quote_plus(words.strip())), timeout=20,
+                url = tpl.format(q=quote_plus(words.strip()))
+                if not words.isascii():  # Arabic searches need an Arabic, Saudi-region page or Bing returns unrelated sites
+                    url = url.replace("setlang=en&cc=us", "setlang=ar&cc=sa")
+                r = session.get(url, timeout=20,
                                 headers={"User-Agent": SEARCH_UA, "Accept-Language": "en-US,en;q=0.9"})
             except requests.RequestException:
                 _stat(name, "blocked")
