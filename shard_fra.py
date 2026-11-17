@@ -43,6 +43,11 @@ def build(day, rnd=0):
         for k in range(len(cities)):
             for n, t in enumerate(temps):
                 en.append(t.format(c=cities[(day * 3 + n + k + rnd * 7) % len(cities)]) + " | FRA")
+    # Five wordings of every search (email, contact number, directory...) so the searches keep reaching sites not checked yet
+    suf_en = ["", " email", " contact number", " directory", " list of offices"]
+    suf_ar = ["", " واتساب", " رقم الهاتف", " دليل", " ايميل"]
+    en = [q.replace(" | FRA", s + " | FRA") for s in suf_en for q in en]
+    ar = [q.replace(" | FRA", s + " | FRA") for s in suf_ar for q in ar]
     out = [g + " | FRA" for g in fra.GENERIC] if rnd == 0 else []
     for i in range(max(len(ar), len(en))):  # English searches first, Arabic mixed in, so both kinds run every round
         if i < len(en):
