@@ -1,4 +1,5 @@
-"""Decides whether a scheduled run should start: only when the last finished run ended more than 24 hours ago."""
+"""Decides whether a scheduled run should start: only when the last finished run ended more than 1 hour ago,
+so runs follow each other all day and never overlap."""
 import datetime
 import os
 
@@ -10,7 +11,7 @@ def main():
     if os.environ.get("EVENT") == "schedule" and store.configured():
         try:
             last = store.Store().last_finished()
-            if last and (datetime.datetime.utcnow() - last) < datetime.timedelta(hours=24):
+            if last and (datetime.datetime.utcnow() - last) < datetime.timedelta(hours=1):
                 go = False
         except Exception as e:
             print("gate error", type(e).__name__)
