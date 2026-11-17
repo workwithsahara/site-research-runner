@@ -26,6 +26,16 @@ class FraTests(unittest.TestCase):
         res, why = fra.evaluate("shop.com", [("https://shop.com", "<html><body>Filipino food shop in Texas</body></html>")])
         self.assertIsNone(res)
 
+    def test_open_market_agency_without_filipino_mention(self):
+        html = "<html><body><h1>Najd Manpower</h1><p>Licensed recruitment office in Riyadh, Saudi Arabia. We bring domestic workers from abroad, Kenya and Uganda. Visa processing. Call +966 55 123 4567. Email info@najdmp.sa</p></body></html>"
+        res, why = fra.evaluate("najdmp.sa", [("https://najdmp.sa", html)])
+        self.assertEqual(why, "ok")
+        self.assertIn("open market", res["partner"])
+
+    def test_non_recruiter_rejected(self):
+        res, why = fra.evaluate("food.sa", [("https://food.sa", "<html><body>Riyadh Saudi restaurant menu. Call +966 55 123 4567 info@food.sa</body></html>")])
+        self.assertIsNone(res)
+
 
 if __name__ == "__main__":
     unittest.main()
