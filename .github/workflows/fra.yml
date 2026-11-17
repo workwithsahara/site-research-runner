@@ -1,6 +1,8 @@
 name: Gulf agencies
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 20 * * *"
 permissions:
   contents: read
 concurrency:
@@ -10,6 +12,11 @@ jobs:
   find:
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     env:
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       SHEET_ID: ${{ secrets.SHEET_ID }}
@@ -20,9 +27,11 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
       - run: python -m unittest tests.test_fra
-      - run: python fra.py
+      - run: python shard_fra.py
         env:
-          FRA_TARGET: "500"
+          FRA_TARGET: "1200"
+          SHARD: ${{ matrix.shard }}
+          SHARDS: "10"
           WORKERS: "6"
           CRAWL_DELAY: "0.5"
           MAX_SECONDS: "16000"
