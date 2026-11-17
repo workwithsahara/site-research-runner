@@ -184,18 +184,31 @@ def main():
         print(f"seed list: {len(seeds)} entries, {len(q)} not checked yet", flush=True)
         if not process(q):
             seeds = None
-    # searches in small chunks, checking what each chunk finds before searching again
-    qs = expand_queries(s.read_lines("queries.txt"), today)
+    # searches in small chunks, checking what each chunk finds before searching again.
+    # When the list runs out before the target, start another round with different cities and states.
     chunk = QUERY_CHUNK
-    for j in range(0, len(qs) if seeds is not None else 0, chunk):
-        if time.time() - started > MAX_SECONDS:
-            state["stop"] = "hit the time limit"
+    default_stop = state["stop"]
+    empty = 0
+    for rnd in range(40):
+        if seeds is None:
             break
-        found = s.discover(qs[j:j + chunk], session)
-        q = enqueue([{"domain": h, "industry": ind, "headcount": None, "country": "", "locality": "", "company": ""}
-                     for h, ind in found])
-        print(f"searches {j + 1}-{min(j + chunk, len(qs))} of {len(qs)}: {len(q)} new sites", flush=True)
-        if not process(q):
+        before = state["done"]
+        qs = expand_queries(s.read_lines("queries.txt"), today + datetime.timedelta(days=rnd * 37))
+        for j in range(0, len(qs), chunk):
+            if time.time() - started > MAX_SECONDS:
+                state["stop"] = "hit the time limit"
+                break
+            found = s.discover(qs[j:j + chunk], session)
+            q = enqueue([{"domain": h, "industry": ind, "headcount": None, "country": "", "locality": "", "company": ""}
+                         for h, ind in found])
+            print(f"round {rnd + 1} searches {j + 1}-{min(j + chunk, len(qs))} of {len(qs)}: {len(q)} new sites", flush=True)
+            if not process(q):
+                break
+        if state["stop"] != default_stop:
+            break
+        empty = empty + 1 if state["done"] == before else 0
+        print(f"round {rnd + 1} finished, {len(new_rows)} new leads so far", flush=True)
+        if empty >= 2:
             break
 
     if st:
