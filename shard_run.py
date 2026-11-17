@@ -7,6 +7,7 @@ SHARD = int(os.environ.get("SHARD", "0")) % SHARDS
 TOTAL = int(os.environ.get("TARGET_PER_DAY", "800"))
 os.environ["TARGET_PER_DAY"] = str(-(-TOTAL // SHARDS))  # each shard's share of the passing-leads target
 
+import sheetretry  # noqa: E402,F401
 import scraper  # noqa: E402
 import search  # noqa: E402
 
