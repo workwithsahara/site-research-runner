@@ -98,6 +98,8 @@ def search_hosts(words, session, per_query=30):
             continue
         merged = []
         for name, tpl in ready:
+            if name == "bing" and not words.isascii():
+                continue  # Bing answers Arabic searches with unrelated sites, Yahoo handles those
             _stat(name, "req")
             try:
                 r = session.get(tpl.format(q=quote_plus(words.strip())), timeout=20,

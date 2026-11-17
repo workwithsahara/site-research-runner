@@ -33,6 +33,21 @@ class SearchTests(unittest.TestCase):
         self.assertIn("shared.com", out)
         self.assertEqual(len(out), 6)
 
+    def test_bing_skipped_for_arabic(self):
+        class R:
+            status_code = 200
+            text = '<a href="https://x-agency.com/">x</a>'
+        class S:
+            urls = []
+            def get(self, url, **k):
+                S.urls.append(url)
+                return R()
+        for st in search._state.values():
+            st.update({"until": 0.0, "strikes": 0})
+        search.search_hosts("مكتب استقدام الرياض", S(), 30)
+        self.assertFalse(any("bing.com" in u for u in S.urls))
+        self.assertTrue(any("yahoo.com" in u for u in S.urls))
+
     def test_only_real_results_when_page_has_result_blocks(self):
         html = ('<ul><li class="b_algo"><h2><a href="https://real-agency.com/">r</a></h2></li></ul>'
                 '<div class="b_ans"><a href="https://emojipedia.org/">junk</a></div>'

@@ -26,7 +26,10 @@ EXTRA_T = ["{c} musaned recruitment office contact us", "{c} recruitment agency 
            "{c} staffing agency foreign workers Philippines India", "{c} maid recruitment office domestic workers Philippines Indonesia"]
 fra.SAUDI_T.extend(EXTRA_T)
 fra.QATAR_T.extend(EXTRA_T)
-fra.ARABIC.extend(["مكتب استقدام {c} تواصل معنا", "شركة استقدام عمالة منزلية {c}", "استقدام عمالة من الفلبين {c} واتساب", "مكتب خدم {c} الفلبين"])
+fra.ARABIC.extend(["مكتب استقدام {c} تواصل معنا", "شركة استقدام عمالة منزلية {c}", "استقدام عمالة من الفلبين {c} واتساب", "مكتب خدم {c} الفلبين",
+                   "مكتب استقدام معتمد مساند {c}", "ارقام مكاتب الاستقدام في {c}", "تراخيص مكاتب الاستقدام {c}",
+                   "استقدام عاملات منزليات {c} الفلبين", "مكتب توظيف عمالة اجنبية {c}", "شركة استقدام سائقين وعمال {c} الفلبين",
+                   "مكتب استقدام {c} عاملة فلبينية", "شركة خدمات عمالة {c} اتصل بنا", "دليل مكاتب الاستقدام {c}"])
 
 
 def build(day, rnd=0):
