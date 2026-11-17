@@ -13,7 +13,7 @@ class FraTests(unittest.TestCase):
         self.assertEqual(res["partner"], "Yes")
 
     def test_placeholder_email_dropped(self):
-        html = "<html><body>Saudi Arabia Riyadh Filipino workers. Call +966 55 123 4567. Mail info@realoffice.sa or building@yoursite.com</body></html>"
+        html = "<html><head><title>Realoffice Recruitment</title></head><body>Recruitment office, manpower and staffing. Saudi Arabia Riyadh Filipino workers. Call +966 55 123 4567. Mail info@realoffice.sa or building@yoursite.com</body></html>"
         res, why = fra.evaluate("realoffice.sa", [("https://realoffice.sa", html)])
         self.assertEqual(res["emails"], ["info@realoffice.sa"])
 
@@ -31,6 +31,11 @@ class FraTests(unittest.TestCase):
         res, why = fra.evaluate("najdmp.sa", [("https://najdmp.sa", html)])
         self.assertEqual(why, "ok")
         self.assertIn("open market", res["partner"])
+
+    def test_news_site_rejected(self):
+        html = "<html><head><title>Saudi Gazette news</title></head><body>Recruitment manpower staffing news. Riyadh Saudi Filipino. +966 55 123 4567 info@sg.com.sa</body></html>"
+        res, why = fra.evaluate("saudigazette.com.sa", [("https://saudigazette.com.sa", html)])
+        self.assertIsNone(res)
 
     def test_non_recruiter_rejected(self):
         res, why = fra.evaluate("food.sa", [("https://food.sa", "<html><body>Riyadh Saudi restaurant menu. Call +966 55 123 4567 info@food.sa</body></html>")])

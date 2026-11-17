@@ -24,14 +24,14 @@ SAUDI_T = ["recruitment office {c} Filipino domestic workers", "manpower recruit
            "{c} Filipino drivers cleaners labour supply company", "{c} housemaid recruitment office Filipino contact email",
            "{c} recruitment agency looking for Philippine partner agency",
            "{c} recruitment office foreign workers visa manpower supply", "{c} licensed recruitment office domestic workers from abroad",
-           "{c} manpower supply company contact email", "{c} \u0645\u0643\u062a\u0628 \u0627\u0633\u062a\u0642\u062f\u0627\u0645 \u0639\u0645\u0627\u0644\u0629 \u0645\u0646\u0632\u0644\u064a\u0629"]
+           "{c} manpower supply company contact email", "{c} مكتب استقدام عمالة منزلية"]
 QATAR_T = ["recruitment agency {c} Filipino domestic workers", "manpower supply company {c} Filipino workers",
            "{c} recruitment office Philippines skilled workers", "{c} company hiring Filipino workers job order",
            "{c} maid agency Filipina housemaid", "{c} licensed recruitment agency Philippines contact",
            "{c} Filipino nurses hospital staff recruitment agency", "{c} agency hiring Filipino hotel restaurant staff",
            "{c} Filipino drivers cleaners labour supply company", "{c} recruitment agency looking for Philippine partner agency",
            "{c} recruitment office foreign workers visa manpower supply", "{c} licensed recruitment office domestic workers from abroad",
-           "{c} manpower supply company contact email", "{c} \u0645\u0643\u062a\u0628 \u0627\u0633\u062a\u0642\u062f\u0627\u0645 \u0639\u0645\u0627\u0644\u0629 \u0645\u0646\u0632\u0644\u064a\u0629"]
+           "{c} manpower supply company contact email", "{c} مكتب استقدام عمالة منزلية"]
 ARABIC = ["مكتب استقدام عمالة فلبينية {c}", "استقدام خادمات فلبينيات {c}", "شركة استقدام من الفلبين {c}", "مكتب استقدام عمالة منزلية الفلبين"]
 AR_SA = {"Riyadh": "الرياض", "Jeddah": "جدة", "Dammam": "الدمام", "Khobar": "الخبر", "Mecca": "مكة", "Medina": "المدينة المنورة", "Taif": "الطائف", "Abha": "أبها", "Tabuk": "تبوك", "Buraidah": "بريدة"}
 AR_QA = {"Doha": "الدوحة", "Al Wakrah": "الوكرة", "Al Khor": "الخور", "Lusail": "لوسيل", "Al Rayyan": "الريان"}
@@ -44,7 +44,7 @@ COLS = ["Date found", "Agency", "Website", "Country", "City", "Email", "Email do
 
 DH = re.compile(r"domestic (?:worker|helper|staff)|house ?maid|\bmaids?\b|household (?:service )?worker|\bhsw\b|nanny|housekeeper", re.I)
 SK = re.compile(r"skilled|technician|engineer|nurse|welder|electrician|mechanic|construction|hospitality|chef|manpower supply|labou?r supply|plumber|carpenter|steel|operator", re.I)
-FIL = re.compile(r"filipino|filipina|philippine|pinoy|\bofw\b|manila|\u0641\u0644\u0628\u064a\u0646|\u0627\u0644\u0641\u0644\u0628\u064a\u0646", re.I)
+FIL = re.compile(r"filipino|filipina|philippine|pinoy|\bofw\b|manila|فلبين|الفلبين", re.I)
 JO = re.compile(r"job order|vacanc|urgent|now hiring|we (?:are )?(?:need|hiring|looking)|required|demand|openings?|positions? available|requirement", re.I)
 PART = re.compile(r"partner|collaborat|philippine agenc|agenc(?:y|ies) (?:in|from) the philippines|accredited agenc|sub-?agent|looking for (?:a )?(?:philippine|filipino)", re.I)
 LIC = re.compile(r"(?:licen[cs]e|licen[cs]ed|musaned|commercial registration|\bcr\b|ministry of (?:human resources|labou?r)|mwo|polo)[^.\n]{0,70}", re.I)
@@ -53,9 +53,11 @@ QA_W = re.compile(r"qatar|doha|wakrah|al khor|lusail|rayyan", re.I)
 PH_AGENCY = re.compile(r"migrant workers office|philippine embassy|department of migrant workers|dmw\.gov|\bpoea\b|\bdmw\b[^.]{0,40}licen[cs]e|licen[cs]e no\.?\s*[a-z]{2,4}-?\d", re.I)
 GULF_PHONE = re.compile(r"(?:\+|00)\s?(966|974)[\s\-]?\(?0?\)?[\s\-]?(\d{1,2})[\s\-]?(\d{3})[\s\-]?(\d{3,4})")
 WA = re.compile(r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{8,15})", re.I)
-LICNUM = re.compile(r"(?:licen[cs]e|musaned|\u0631\u062e\u0635\u0629)[^0-9]{0,25}(\d{6,12})", re.I)
-AGENCY = re.compile(r"recruit|manpower|man power|staffing|labou?r supply|housemaid|domestic (?:worker|helper)|\bmaids?\b|\u0627\u0633\u062a\u0642\u062f\u0627\u0645|\u062a\u0648\u0638\u064a\u0641|\u0639\u0645\u0627\u0644\u0629", re.I)
-ABROAD = re.compile(r"abroad|overseas|foreign|imported|\bvisa\b|from (?:india|bangladesh|pakistan|kenya|uganda|indonesia|sri lanka|ethiopia|nepal|philippines)|\u0627\u0633\u062a\u0642\u062f\u0627\u0645|\u0645\u0646 \u0627\u0644\u062e\u0627\u0631\u062c|\u0627\u0644\u062a\u0623\u0634\u064a\u0631\u0629", re.I)
+LICNUM = re.compile(r"(?:licen[cs]e|musaned|رخصة)[^0-9]{0,25}(\d{6,12})", re.I)
+AGENCY = re.compile(r"recruit|manpower|man power|staffing|labou?r supply|housemaid|domestic (?:worker|helper)|\bmaids?\b|استقدام|توظيف|عمالة", re.I)
+ABROAD = re.compile(r"abroad|overseas|foreign|imported|\bvisa\b|from (?:india|bangladesh|pakistan|kenya|uganda|indonesia|sri lanka|ethiopia|nepal|philippines)|استقدام|من الخارج|التأشيرة", re.I)
+AGENCY_HEAD = re.compile(r"recruit|manpower|man power|staffing|labou?r|workers?|maids?|housemaid|domestic|employment|placement|\bhr\b|استقدام|توظيف|عمالة|خادم", re.I)
+NOT_AGENCY = re.compile(r"\bnews\b|gazette|newspaper|\bjobs? (?:board|portal|site)\b|directory|construction|engineering|contracting|\bbank\b|hotel|university|hospital|real estate|property|tracking|magazine", re.I)
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
 
 MAX_SECONDS = int(os.environ.get("MAX_SECONDS", "17000"))
@@ -115,6 +117,11 @@ def evaluate(domain, pages):
         return None, "no Saudi or Qatar number or domain"
     if sa < 2 and qa < 2:
         return None, "not Saudi or Qatar"
+    head = domain + " " + " ".join(
+        (b.title.get_text(" ") if b.title else "") + " " + " ".join(m.get("content", "") for m in b.find_all("meta", attrs={"name": re.compile("description", re.I)})) + " " + " ".join(h.get_text(" ") for h in b.find_all(["h1", "h2"])[:4])
+        for b in [BeautifulSoup(pages[0][1], "html.parser")]) if pages else domain
+    if not AGENCY_HEAD.search(head) or len(AGENCY.findall(text)) < 3 or NOT_AGENCY.search(head):
+        return None, "not a recruitment agency"
     fil = bool(FIL.search(text))
     if not fil and not (AGENCY.search(text) and ABROAD.search(text)):
         return None, "not a recruitment agency hiring from abroad"
