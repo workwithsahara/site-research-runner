@@ -74,20 +74,19 @@ def parse_detail(html, base_url):
     tel = soup.select_one('a[href^="tel:"]')
     phone = tel.get("href", "")[4:].strip() if tel else ""
     addr_el = soup.select_one('[class*="address"]')
-    address = re.sub(r"\s+", " ", addr_el.get_text(" ", strip=True)) if addr_el else ""
+    address = re.sub(r"\s+", " ", addr_el.get_text(" ", strip=True)).split(" Show map")[0].strip() if addr_el else ""
     desc_el = soup.select_one('[class*="description"], [class*="entity-desc"]')
     desc_len = len(desc_el.get_text(" ", strip=True)) if desc_el else 0
     site, socials = "", []
     for a in soup.select('a[href^="http"]'):
         h = a.get("href", "")
         low = h.lower()
-        if any(x in low for x in NOT_SITE):
-            if any(x in low for x in SOCIAL) and "hotfrog" not in low and "google" not in low and h not in socials:
+        host = (urlparse(h).hostname or "").lower()
+        if any(host == x or host.endswith("." + x) for x in SOCIAL):
+            if "hotfrog" not in low and h not in socials:
                 socials.append(h)
             continue
-        if any(x in (urlparse(h).hostname or "") for x in SOCIAL):
-            if h not in socials:
-                socials.append(h)
+        if any(x in low for x in NOT_SITE):
             continue
         if not site:
             site = h
