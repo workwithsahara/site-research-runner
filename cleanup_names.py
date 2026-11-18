@@ -14,8 +14,23 @@ def col(n):
 
 
 def main():
-    st = Store()
-    rows = st._read(st.leads_tab, "A:Z")
+    import time
+    for attempt in range(8):
+        try:
+            st = Store()
+            break
+        except Exception as ex:
+            print("retrying after", ex)
+            time.sleep(45)
+    else:
+        raise SystemExit("could not open the sheet")
+    for attempt in range(8):
+        try:
+            rows = st._read(st.leads_tab, "A:Z")
+            break
+        except Exception as ex:
+            print("retrying read", ex)
+            time.sleep(45)
     head = rows[0]
     iD, iE, iQ = head.index("First name"), head.index("Owner or founder (public)"), head.index("Personalized")
     data = []
@@ -38,8 +53,12 @@ def main():
             data.append({"range": f"{st.leads_tab}!{col(iQ)}{i}", "values": [[newq]]})
             fixed += 1
     for k in range(0, len(data), 200):
-        res = st.s.post(f"https://sheets.googleapis.com/v4/spreadsheets/{st.sid}/values:batchUpdate",
-                        json={"valueInputOption": "RAW", "data": data[k:k + 200]})
+        for attempt in range(8):
+            res = st.s.post(f"https://sheets.googleapis.com/v4/spreadsheets/{st.sid}/values:batchUpdate",
+                            json={"valueInputOption": "RAW", "data": data[k:k + 200]})
+            if res.status_code != 429:
+                break
+            time.sleep(45)
         res.raise_for_status()
     print(f"first names cleared: {cleared}, Personalized lines fixed: {fixed}, rows read: {len(rows) - 1}")
 
