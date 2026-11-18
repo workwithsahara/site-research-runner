@@ -34,7 +34,7 @@ COLUMNS = [
     "#", "Company", "Website", "First name", "Owner or founder (public)", "Phone",
     "Email", "Email note", "Industry", "Based in", "Size signal", "Visible gap",
     "Offer to pitch", "Fits your criteria", "Ask on first call", "Date found",
-    "Personalized", "Why this line", "Lead tier", "Role to apply for", "Email 1 sent", "Email 2 sent", "Responded", "General email (info/support)",
+    "Personalized", "Why this line", "Lead tier", "Role to apply for", "Email 1 sent", "Email 2 sent", "Responded", "General email (info/support)", "Email type",
 ]
 ALLOWED = {"United States", "Canada", "Australia", "United Kingdom", "New Zealand"}
 COUNTRY_TLD = [(".co.uk", "United Kingdom"), (".org.uk", "United Kingdom"), (".uk", "United Kingdom"),
@@ -307,6 +307,7 @@ def analyze_site(domain, session, industry="", headcount=None, hint_country="", 
         "Personalized": line, "Why this line": why, "Lead tier": tier,
         "Role to apply for": personalize.role_for(industry, offer, gaps, no_social, alltext),
         "General email (info/support)": general_email,
+        "Email type": "Personal" if direct else ("Shared" if general else ""),
     }
     row["Size signal"] += f"{team} named staff with titles on site. Revenue not verified, check on first call"
     return (row, fails), None
