@@ -66,6 +66,8 @@ def parse_detail(html, base_url):
     soup = BeautifulSoup(html, "html.parser")
     h1 = soup.select_one("h1")
     name = re.sub(r"\s+", " ", h1.get_text(" ", strip=True)).strip() if h1 else ""
+    if not name and soup.title:
+        name = re.sub(r"\s+", " ", soup.title.get_text(" ", strip=True)).split(" - ")[0].split(" | ")[0].strip()
     mails = [a.get("href", "")[7:].split("?")[0].strip() for a in soup.select('a[href^="mailto:"]')]
     mails = [m for m in mails if EMAIL_RE.fullmatch(m) and "hotfrog" not in m.lower()]
     email = mails[0] if mails else ""
