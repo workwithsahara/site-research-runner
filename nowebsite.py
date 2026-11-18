@@ -268,7 +268,7 @@ def main():
                             n_rows += 1
                             kept += 1
                             emails_have.add(d["email"].lower())
-                            new_rows.append([n_rows, stamp, d["name"], country, city, ind, d["email"], et,
+                            new_rows.append(["=ROW()-1", stamp, d["name"], country, city, ind, d["email"], et,
                                              ("'" + d["phone"]) if d["phone"][:1] in "+=-@" else d["phone"], d["address"],
                                              "No", "Yes" if d["socials"] else "No", ", ".join(d["socials"][:3]), label, why, u])
                     why_not[result] = why_not.get(result, 0) + 1
