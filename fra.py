@@ -58,6 +58,7 @@ AGENCY = re.compile(r"recruit|manpower|man power|staffing|labou?r supply|housema
 ABROAD = re.compile(r"abroad|overseas|foreign|imported|\bvisa\b|from (?:india|bangladesh|pakistan|kenya|uganda|indonesia|sri lanka|ethiopia|nepal|philippines)|استقدام|من الخارج|التأشيرة", re.I)
 AGENCY_HEAD = re.compile(r"recruit|manpower|man power|staffing|labou?r|workers?|maids?|housemaid|domestic|employment|placement|\bhr\b|استقدام|توظيف|عمالة|خادم", re.I)
 NOT_AGENCY = re.compile(r"\bnews\b|gazette|newspaper|\bjobs? (?:board|portal|site)\b|directory|construction|engineering|contracting|\bbank\b|hotel|university|hospital|real estate|property|tracking|magazine", re.I)
+SA_LOCAL = re.compile(r"(?<![\d+])(?:\+?966[\s\-]?|0)5\d[\s\-]?\d{3}[\s\-]?\d{4}(?!\d)")
 LINKS = ("contact", "about", "job", "vacan", "career", "hire", "order", "service", "recruit", "demand", "partner", "apply", "worker")
 
 MAX_SECONDS = int(os.environ.get("MAX_SECONDS", "17000"))
@@ -110,6 +111,13 @@ def evaluate(domain, pages):
                 sa += 1
             else:
                 qa += 1
+        for m in SA_LOCAL.finditer(raw):
+            d = re.sub(r"\D", "", m.group(0))
+            d = d[3:] if d.startswith("966") else d
+            d = d.lstrip("0")
+            if len(d) == 9:
+                phones.append(f"+966 {d[:2]} {d[2:5]} {d[5:]}")
+                sa += 1
         wa += [("+" + x.lstrip("+")) for x in WA.findall(raw)]
     has_phone = bool(phones)
     mail_gulf = any(e.endswith((".sa", ".qa")) for e in s.extract_emails("".join(raws)))
