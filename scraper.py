@@ -34,7 +34,7 @@ COLUMNS = [
     "#", "Company", "Website", "First name", "Owner or founder (public)", "Phone",
     "Email", "Email note", "Industry", "Based in", "Size signal", "Visible gap",
     "Offer to pitch", "Fits your criteria", "Ask on first call", "Date found",
-    "Personalized", "Why this line", "Lead tier", "Role to apply for",
+    "Personalized", "Why this line", "Lead tier", "Role to apply for", "Email 1 sent", "Email 2 sent", "Responded", "General email (info/support)",
 ]
 ALLOWED = {"United States", "Canada", "Australia", "United Kingdom", "New Zealand"}
 COUNTRY_TLD = [(".co.uk", "United Kingdom"), (".org.uk", "United Kingdom"), (".uk", "United Kingdom"),
@@ -271,19 +271,17 @@ def analyze_site(domain, session, industry="", headcount=None, hint_country="", 
         fails.append(f"headcount {headcount} is over {MAX_HEADCOUNT}")
     if not owner:
         fails.append("no owner named on public pages")
-    elif len(owner.split()) < 2:
-        fails.append("owner has a first name only, not confident it is the owner")
     if not phones:
         fails.append("no phone")
     if direct:
         tier = "A: owner email proven, reach the owner by email and phone"
-    elif general and owner and phones:
+    elif general:
         generic = general[0][1].startswith("general inbox")
         tier = ("B: phone-first, email is a general inbox (not owner-direct)" if generic
                 else "B: phone-first, email is not proven to be the owner's")
     else:
         tier = ""
-        fails.append("no proven owner-direct email" + (f" (only: {', '.join(e for e, _ in general)})" if general else ""))
+        fails.append("no email found on site")
     if team > MAX_TEAM_LAYA:
         fails.append(f"not an A fit, team looks large ({team} named staff with titles)")
     if big:
@@ -291,7 +289,8 @@ def analyze_site(domain, session, industry="", headcount=None, hint_country="", 
     if not offer:
         fails.append("no visible gap to pitch" if platform != "Shopify" else "Shopify store already shows social links")
 
-    email, email_note = (direct[0] if direct else ((general[0][0], general[0][1]) if general else ("", "no email found on site")))
+    email, email_note = (direct[0] if direct else ("", general[0][1] if general else "no email found on site"))
+    general_email = ", ".join(e for e, _ in general) if not direct else ""
     name = company or clean_company(soup, domain)
     first = owner.split()[0] if owner else ""
     line, why = personalize.personalize(name, first, industry, alltext)
@@ -307,6 +306,7 @@ def analyze_site(domain, session, industry="", headcount=None, hint_country="", 
         "Ask on first call": personalize.ask_on_call(industry),
         "Personalized": line, "Why this line": why, "Lead tier": tier,
         "Role to apply for": personalize.role_for(industry, offer, gaps, no_social, alltext),
+        "General email (info/support)": general_email,
     }
     row["Size signal"] += f"{team} named staff with titles on site. Revenue not verified, check on first call"
     return (row, fails), None
