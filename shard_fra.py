@@ -24,6 +24,9 @@ EXTRA_T = ["{c} musaned recruitment office contact us", "{c} recruitment agency 
            "{c} manpower company Filipino domestic worker visa", "{c} company careers Filipino staff hiring agency",
            "{c} Philippines recruitment partner agency contact", "{c} recruitment office Filipino workers whatsapp",
            "{c} staffing agency foreign workers Philippines India", "{c} maid recruitment office domestic workers Philippines Indonesia"]
+fra.GENERIC.extend(["UAE recruitment agency looking for Philippine agency partnership", "Dubai manpower agency Filipino domestic workers contact whatsapp",
+                    "Kuwait recruitment office Filipino domestic workers contact", "Oman recruitment agency Filipino workers contact",
+                    "Bahrain recruitment agency Filipino domestic workers contact", "Abu Dhabi recruitment agency Filipino workers whatsapp"])
 fra.SAUDI_T.extend(EXTRA_T)
 fra.QATAR_T.extend(EXTRA_T)
 fra.ARABIC.extend(["مكتب استقدام {c} تواصل معنا", "شركة استقدام عمالة منزلية {c}", "استقدام عمالة من الفلبين {c} واتساب", "مكتب خدم {c} الفلبين",
@@ -34,12 +37,14 @@ fra.ARABIC.extend(["مكتب استقدام {c} تواصل معنا", "شركة 
 
 def build(day, rnd=0):
     ar, en = [], []
-    for names in (fra.AR_SA, fra.AR_QA):
+    for names in (fra.AR_AE, fra.AR_KW, fra.AR_OM, fra.AR_BH, fra.AR_SA, fra.AR_QA):
         keys = list(names)
         for k in range(len(keys)):
             for n, a in enumerate(fra.ARABIC):
                 ar.append(a.format(c=names[keys[(day * 3 + n + k + rnd * 7) % len(keys)]]) + " | FRA")
-    for cities, temps in ((fra.SAUDI, fra.SAUDI_T), (fra.QATAR, fra.QATAR_T)):
+    # Saudi and Qatar searches are used up, so the other Gulf countries go first
+    for cities, temps in ((fra.UAE, fra.QATAR_T), (fra.KUWAIT, fra.QATAR_T), (fra.OMAN, fra.QATAR_T), (fra.BAHRAIN, fra.QATAR_T),
+                          (fra.SAUDI, fra.SAUDI_T), (fra.QATAR, fra.QATAR_T)):
         for k in range(len(cities)):
             for n, t in enumerate(temps):
                 en.append(t.format(c=cities[(day * 3 + n + k + rnd * 7) % len(cities)]) + " | FRA")
@@ -66,7 +71,7 @@ def _checked():
     if not _st:
         _st.append(store.Store())
     st = _st[0]
-    done = {(r.get("Domain") or "") for r in st.read_table("FRA Checked") if (r.get("Result") or "") != "no mention of Filipino workers"}
+    done, _ = fra.done_set(st.read_table("FRA Checked"))
     return done | {(r.get("Website", "") or "").lower().replace("https://", "").replace("http://", "").replace("www.", "").strip("/") for r in st.read_table("FRA Leads")}
 
 

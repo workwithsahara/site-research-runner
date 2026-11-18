@@ -41,6 +41,33 @@ class FraTests(unittest.TestCase):
         res, why = fra.evaluate("food.sa", [("https://food.sa", "<html><body>Riyadh Saudi restaurant menu. Call +966 55 123 4567 info@food.sa</body></html>")])
         self.assertIsNone(res)
 
+    def test_whatsapp_only_agency_saved(self):
+        html = "<html><head><title>Najd Recruitment Office</title></head><body><h1>Najd Recruitment</h1><p>Licensed recruitment office in Riyadh, Saudi Arabia. We hire Filipino domestic workers, housemaid and skilled workers. Urgent requirement: housemaid. Chat on WhatsApp <a href='https://wa.me/966551234567'>here</a> or call +966 55 123 4567.</p></body></html>"
+        res, why = fra.evaluate("najdrec.com", [("https://najdrec.com", html)])
+        self.assertEqual(why, "ok")
+        self.assertEqual(res["emails"], [])
+        self.assertEqual(res["wa"], ["+966551234567"])
+        self.assertEqual(fra.contact_type(res["emails"], res["phones"], res["wa"]), "WhatsApp link")
+
+    def test_uae_agency(self):
+        html = "<html><head><title>Dubai Star Recruitment</title></head><body><h1>Dubai Star Recruitment</h1><p>Licensed recruitment agency in Dubai, UAE. We hire Filipino domestic workers and skilled workers. Job order: 10 housemaid. Call +971 50 123 4567. Email info@dubaistar.ae</p></body></html>"
+        res, why = fra.evaluate("dubaistar.ae", [("https://dubaistar.ae", html)])
+        self.assertEqual(why, "ok")
+        self.assertEqual(res["country"], "UAE")
+        self.assertEqual(res["city"], "Dubai")
+        self.assertEqual(res["phones"][0], "+971 50 123 4567")
+
+    def test_no_email_no_number_rejected(self):
+        html = "<html><head><title>Najd Recruitment Office</title></head><body><h1>Najd Recruitment</h1><p>Licensed recruitment office in Riyadh, Saudi Arabia. We hire Filipino domestic workers, housemaid and skilled workers.</p></body></html>"
+        res, why = fra.evaluate("najdrec.sa", [("https://najdrec.sa", html)])
+        self.assertIsNone(res)
+
+    def test_old_rejections_get_second_look(self):
+        done, redo = fra.done_set([{"Domain": "a.com", "Result": "no email found"}, {"Domain": "b.com", "Result": "no email found v2"},
+                                   {"Domain": "c.com", "Result": "robots disallow"}])
+        self.assertEqual(done, {"b.com", "c.com"})
+        self.assertIn("a.com", redo)
+
 
 if __name__ == "__main__":
     unittest.main()
