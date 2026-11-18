@@ -1,48 +1,47 @@
-"""Probe 3: Hotfrog search and detail page structure (emails, websites, reviews)."""
+"""Probe 4: does Bing give new hosts on result pages 2 to 4, and do Gulf directories load from this runner?"""
 import re
 import time
-from urllib.parse import urljoin
+from urllib.parse import quote_plus, unquote, urlparse
 
 import requests
-from bs4 import BeautifulSoup
 
 import search
 
-EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
-s = requests.Session()
 H = {"User-Agent": search.SEARCH_UA, "Accept-Language": "en-US,en;q=0.9"}
-for base, path in [("https://www.hotfrog.com.au", "/search/sydney/plumber"), ("https://www.hotfrog.com", "/search/austin/plumber"),
-                   ("https://www.hotfrog.co.uk", "/search/london/hairdresser"), ("https://www.hotfrog.ca", "/search/toronto/plumber"),
-                   ("https://www.hotfrog.co.nz", "/search/auckland/plumber")]:
+s = requests.Session()
+QS = ["recruitment agency Riyadh Filipino domestic workers contact email", "مكتب استقدام الرياض الفلبين", "manpower supply company Doha Qatar recruitment contact"]
+SKIP = ("bing.", "microsoft.", "msn.", "google.", "facebook.", "youtube.", "linkedin.", "wikipedia.")
+
+
+def hosts(html):
+    out = []
+    for h in re.findall(r'<li class="b_algo".*?<a[^>]+href="(https?://[^"]+)"', html, re.S):
+        host = (urlparse(unquote(h)).hostname or "").lower().replace("www.", "")
+        if host and host not in out and not any(x in host for x in SKIP):
+            out.append(host)
+    return out
+
+
+for q in QS:
+    seen = set()
+    for first in (1, 11, 21, 31, 41):
+        try:
+            r = s.get("https://www.bing.com/search?q=" + quote_plus(q) + f"&first={first}&setlang=en", timeout=25, headers=H)
+            hs = hosts(r.text)
+            new = [h for h in hs if h not in seen]
+            seen.update(hs)
+            print(f"{q[:40].encode('unicode_escape').decode()!r} first={first} status={r.status_code} hosts={len(hs)} new={len(new)} {new[:5]}", flush=True)
+        except Exception as ex:
+            print("error", type(ex).__name__, flush=True)
+        time.sleep(2)
+print("--- directories", flush=True)
+for u in ["https://www.yellowpages.com.sa/", "https://www.saudiyellowpages.com/", "https://www.yellowpages.qa/", "https://www.qatarYellowpages.com/", "https://www.hotfrog.ae/search/dubai/recruitment",
+          "https://www.hotfrog.com.sa/", "https://sa.kompass.com/", "https://qa.kompass.com/", "https://www.cylex.com.sa/", "https://www.yellow-pages.qa/",
+          "https://www.2findlocal.com/", "https://www.infobel.com/en/saudi_arabia", "https://www.infobel.com/en/qatar", "https://www.europages.com/", "https://www.exportersindia.com/",
+          "https://dir.qatar.ae/", "https://www.zawya.com/", "https://www.arabianbusiness.com/"]:
     try:
-        r = s.get(base + path, timeout=25, headers=H)
+        r = s.get(u, timeout=20, headers=H)
+        print(u[:60], r.status_code, "len", len(r.text), flush=True)
     except Exception as ex:
-        print(base, "error", type(ex).__name__, flush=True)
-        continue
-    soup = BeautifulSoup(r.text, "html.parser")
-    links = [a.get("href") for a in soup.select('a[href*="/company/"]')]
-    print(base, r.status_code, "len", len(r.text), "emails", len(EMAIL.findall(r.text)), "company links", len(set(links)), flush=True)
-    if base.endswith(".com.au"):
-        txt = soup.get_text(" ", strip=True)
-        m = EMAIL.search(txt)
-        if m:
-            print("  TEXT AROUND EMAIL:", txt[max(0, m.start() - 300):m.end() + 200].encode("ascii", "ignore").decode(), flush=True)
-        card = soup.select_one('a[href*="/company/"]')
-        if card:
-            par = card
-            for _ in range(4):
-                par = par.parent or par
-            print("  CARD HTML:", str(par)[:1800].encode("ascii", "ignore").decode(), flush=True)
-        seen = []
-        for h in links:
-            if h and h not in seen:
-                seen.append(h)
-        for h in seen[:3]:
-            d = s.get(urljoin(base, h), timeout=25, headers=H)
-            ds = BeautifulSoup(d.text, "html.parser")
-            dt = ds.get_text(" ", strip=True)
-            print("  DETAIL", h[:70], d.status_code, "emails", EMAIL.findall(d.text)[:3], "mailto", len(ds.select('a[href^="mailto:"]')),
-                  "website links", [a.get("href") for a in ds.select('a[href^="http"]') if "hotfrog" not in a.get("href", "") and "google" not in a.get("href", "")][:4], flush=True)
-            print("  DETAILTEXT:", dt[:700].encode("ascii", "ignore").decode(), flush=True)
-            time.sleep(1.5)
-    time.sleep(2)
+        print(u[:60], "error", type(ex).__name__, flush=True)
+    time.sleep(1)
