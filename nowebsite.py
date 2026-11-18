@@ -203,6 +203,7 @@ def main():
     print(f"shard {SHARD}/{SHARDS}: {len(checked)} pages checked, {n_rows} leads in the tab", flush=True)
     kept = looked = blocked = searches = 0
     why_not = {}
+    DEBUG = []
     qs = queries(today.toordinal())
     for qi, (country, city, ind, niche) in enumerate(qs):
         if qi % SHARDS != SHARD:
@@ -223,11 +224,17 @@ def main():
             if fresh:
                 checked.update(l.lower() for l in fresh)
                 def work(u):
-                    time.sleep(random.uniform(0.2, 0.8))
+                    time.sleep(random.uniform(0.5, 1.5))
                     try:
                         r = session.get(u, timeout=25, headers=HEAD)
-                        return u, (parse_detail(r.text, u) if r.status_code == 200 else None), r.status_code
-                    except Exception:
+                        d = parse_detail(r.text, u) if r.status_code == 200 else None
+                        if not d or not d["name"]:
+                            if len(DEBUG) < 4:
+                                DEBUG.append((u[-50:], r.status_code, len(r.text), re.sub(r"\s+", " ", r.text[:150])))
+                        return u, d, r.status_code
+                    except Exception as ex:
+                        if len(DEBUG) < 4:
+                            DEBUG.append((u[-50:], type(ex).__name__))
                         return u, None, -1
                 with ThreadPoolExecutor(max_workers=WORKERS) as ex:
                     res = list(ex.map(work, fresh))
@@ -236,7 +243,7 @@ def main():
                 for u, d, st in res:
                     looked += 1
                     if not d or not d["name"]:
-                        why_not["page error"] = why_not.get("page error", 0) + 1
+                        why_not[f"page error {st}"] = why_not.get(f"page error {st}", 0) + 1
                         if st in (403, 429):
                             blocked += 1
                         continue
@@ -267,7 +274,7 @@ def main():
                     chk.append([u, stamp, result])
                 sh.append(LEADS_TAB, new_rows)
                 sh.append(CHECKED_TAB, chk)
-                print(f"shard {SHARD}: searches {searches}, pages looked at {looked}, kept {kept}, blocked {blocked} | {why_not}", flush=True)
+                print(f"shard {SHARD}: searches {searches}, pages looked at {looked}, kept {kept}, blocked {blocked} | {why_not} | {DEBUG}", flush=True)
             if len(links) < 8:
                 break
     print(f"shard {SHARD} done: kept {kept}, looked at {looked}, searches {searches}, blocked {blocked}", flush=True)

@@ -29,5 +29,5 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: "4"
           TARGET: "300"
-          WORKERS: "6"
+          WORKERS: "3"
           MAX_SECONDS: "20000"
