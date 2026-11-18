@@ -1,60 +1,70 @@
-"""Probe: can Bing snippets and Facebook pages give email, phone and 'no website' facts for small local businesses?"""
+"""Probe 2: Yellow Pages listings: how many have no website, and do detail pages show emails?"""
 import re
 import time
-from urllib.parse import quote_plus, unquote, urlparse
+from urllib.parse import quote_plus, urljoin
 
 import requests
 from bs4 import BeautifulSoup
 
 import search
 
-UA = search.SEARCH_UA
 EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
-PHONE = re.compile(r"(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}")
 s = requests.Session()
-H = {"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"}
-QS = ["plumber Austin Texas facebook email", "hair salon Leeds facebook page phone email", "barber Brisbane facebook contact email",
-      "site:facebook.com plumber Denver email", "site:facebook.com dog groomer Perth email"]
-fb = []
-for q in QS:
-    try:
-        r = s.get("https://www.bing.com/search?q=" + quote_plus(q) + "&setlang=en", timeout=25, headers=H)
-        soup = BeautifulSoup(r.text, "html.parser")
-        items = soup.select("li.b_algo")
-        n_e = n_p = n_fb = 0
-        for it in items:
-            a = it.select_one("h2 a")
-            href = a.get("href", "") if a else ""
-            text = it.get_text(" ", strip=True)
-            e, p = EMAIL.findall(text), PHONE.findall(text)
-            host = (urlparse(href).hostname or "")
-            n_e += bool(e); n_p += bool(p)
-            if "facebook.com" in host or "instagram.com" in host:
-                n_fb += 1
-                fb.append(href)
-                print("  FB:", href[:90], "| email", e[:1], "| phone", p[:1], "|", text[:160].encode("ascii", "ignore").decode(), flush=True)
-        print(f"Q={q!r} status={r.status_code} items={len(items)} with_email={n_e} with_phone={n_p} facebook={n_fb}", flush=True)
-    except Exception as ex:
-        print("Q", q, "error", type(ex).__name__, flush=True)
-    time.sleep(2)
-print("--- fetch facebook pages directly", flush=True)
-for u in fb[:6]:
-    for variant in (u, u.replace("www.facebook.com", "mbasic.facebook.com")):
-        try:
-            r = s.get(variant, timeout=25, headers=H)
-            t = r.text
-            print(variant[:80], r.status_code, "len", len(t), "emails", EMAIL.findall(t)[:2], "phones", PHONE.findall(t)[:2], "login" if "login" in t.lower()[:3000] else "", flush=True)
-        except Exception as ex:
-            print(variant[:80], "error", type(ex).__name__, flush=True)
-        time.sleep(1)
-print("--- directories", flush=True)
-for u in ["https://www.yelp.com/search?find_desc=plumber&find_loc=Austin%2C+TX", "https://www.yellowpages.com/search?search_terms=plumber&geo_location_terms=Austin%2C+TX",
-          "https://www.yell.com/s/plumbers-leeds.html", "https://www.hotfrog.com/search/austin/plumber", "https://www.cylex.us.com/s?q=plumber&c=Austin&z=&p=1&dst=&sUrl=&cUrl=",
-          "https://www.manta.com/search?search_source=nav&search=plumber&city=Austin&state=TX", "https://www.bbb.org/search?find_country=USA&find_text=plumber&find_loc=Austin%2C%20TX"]:
+H = {"User-Agent": search.SEARCH_UA, "Accept-Language": "en-US,en;q=0.9"}
+SEARCHES = [("plumber", "Austin, TX"), ("hair salon", "Denver, CO"), ("dog groomer", "Portland, OR"), ("electrician", "Tampa, FL"),
+            ("landscaping", "Columbus, OH"), ("dentist", "Phoenix, AZ"), ("auto repair", "Atlanta, GA")]
+total = nosite = with_rev = 0
+detail = []
+for what, where in SEARCHES:
+    u = f"https://www.yellowpages.com/search?search_terms={quote_plus(what)}&geo_location_terms={quote_plus(where)}"
     try:
         r = s.get(u, timeout=25, headers=H)
-        t = r.text
-        print(u[:60], r.status_code, "len", len(t), "emails", len(EMAIL.findall(t)), "phones", len(PHONE.findall(t)), flush=True)
     except Exception as ex:
-        print(u[:60], "error", type(ex).__name__, flush=True)
+        print(what, where, "error", type(ex).__name__, flush=True)
+        continue
+    soup = BeautifulSoup(r.text, "html.parser")
+    cards = soup.select("div.result, div.v-card")
+    n = ns = 0
+    for c in cards:
+        name = c.select_one("a.business-name")
+        if not name:
+            continue
+        n += 1
+        site = c.select_one("a.track-visit-website")
+        phone = c.select_one("div.phones, .phone")
+        rev = c.select_one("span.count, .rating .count")
+        yrs = c.select_one(".years-in-business .count, .years-in-business")
+        if not site:
+            ns += 1
+            detail.append(urljoin("https://www.yellowpages.com", name.get("href", "")))
+            if ns <= 2:
+                print("  NOSITE:", name.get_text(strip=True)[:40], "|", phone.get_text(strip=True) if phone else None, "| rev", rev.get_text(strip=True) if rev else None, "| yrs", yrs.get_text(" ", strip=True)[:25] if yrs else None, flush=True)
+    total += n
+    nosite += ns
+    print(f"{what} {where}: status={r.status_code} cards={len(cards)} named={n} no_website={ns}", flush=True)
+    time.sleep(2)
+print(f"TOTAL listings={total} no_website={nosite}", flush=True)
+print("--- detail pages of no-website listings", flush=True)
+got = 0
+for u in detail[:14]:
+    try:
+        r = s.get(u, timeout=25, headers=H)
+        soup = BeautifulSoup(r.text, "html.parser")
+        mail = [a.get("href", "")[7:] for a in soup.select('a[href^="mailto:"]')]
+        social = [a.get("href") for a in soup.select('a[href*="facebook.com"], a[href*="instagram.com"]') if "yellowpages" not in a.get("href", "")]
+        got += bool(mail)
+        print(u[-60:], r.status_code, "mailto", mail[:2], "social", social[:2], flush=True)
+    except Exception as ex:
+        print(u[-60:], "error", type(ex).__name__, flush=True)
+    time.sleep(1.5)
+print("detail pages with email:", got, flush=True)
+print("--- other countries", flush=True)
+for u in ["https://www.yellowpages.ca/search/si/1/plumber/Toronto+ON", "https://www.yellowpages.com.au/search/listings?clue=plumber&locationClue=Sydney+NSW",
+          "https://www.yell.com/s/plumbers-leeds.html", "https://www.thomsonlocal.com/search/plumbers/leeds", "https://www.localsearch.com.au/find/plumber/sydney-nsw",
+          "https://www.finda.co.nz/plumber/auckland", "https://www.hotfrog.com.au/search/sydney/plumber", "https://www.hotfrog.co.uk/search/london/plumber"]:
+    try:
+        r = s.get(u, timeout=25, headers=H)
+        print(u[:70], r.status_code, "len", len(r.text), "emails", len(EMAIL.findall(r.text)), flush=True)
+    except Exception as ex:
+        print(u[:70], "error", type(ex).__name__, flush=True)
     time.sleep(1)
