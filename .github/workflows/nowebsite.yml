@@ -24,10 +24,16 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python nowebsite.py
+      - name: Run in short rounds so a stuck page can never stall the shard
+        run: |
+          end=$((SECONDS+19500))
+          while [ $SECONDS -lt $end ]; do
+            timeout 1800 python nowebsite.py || true
+            sleep 5
+          done
         env:
           SHARD: ${{ matrix.shard }}
           SHARDS: "4"
-          TARGET: "300"
+          TARGET: "100000"
           WORKERS: "3"
-          MAX_SECONDS: "20000"
+          MAX_SECONDS: "1500"
