@@ -2,3 +2,5 @@ requests>=2.31
 beautifulsoup4>=4.12
 google-auth>=2.30
 dnspython>=2.4
+gender-guesser>=0.4
+english-words>=2.0

@@ -22,6 +22,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import personalize
+import names
 
 UA = "Mozilla/5.0 (compatible; LAYALeadResearch/1.0)"
 DELAY = float(os.environ.get("CRAWL_DELAY", "1.5"))
@@ -293,7 +294,7 @@ def analyze_site(domain, session, industry="", headcount=None, hint_country="", 
     email, email_note = (direct[0] if direct else ("", general[0][1] if general else "no email found on site"))
     general_email = ", ".join(e for e, _ in general) if not direct else ""
     name = company or clean_company(soup, domain)
-    first = owner.split()[0] if owner else ""
+    first = names.first_name(owner)
     line, why = personalize.personalize(name, first, industry, alltext)
     gap_text = lead_gap_text(gaps, socials, platform)
     row = {
